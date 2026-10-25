@@ -1,0 +1,181 @@
+{
+  "networks": {
+    "agents": {},
+    "control": {}
+  },
+  "services": {
+    "api": {
+      "build": {
+        "context": "..",
+        "dockerfile": "environment/gateway/Dockerfile"
+      },
+      "depends_on": {
+        "main": {
+          "condition": "service_healthy"
+        }
+      },
+      "networks": [
+        "agents",
+        "control"
+      ]
+    },
+    "main": {
+      "build": {
+        "context": "..",
+        "dockerfile": "environment/Dockerfile",
+        "target": "simulation"
+      },
+      "command": [
+        "/bin/sh",
+        "-c",
+        "PATH=/usr/local/bin:/usr/bin:/bin exec node /app/task-runtime/seats.mjs --seat-clients"
+      ],
+      "environment": {
+        "HARBOR_SEATS": "[\"seat-1\", \"seat-2\"]",
+        "HARBOR_SIM_SETTINGS": "{\"agent_ready_required\": true, \"all_chat\": false, \"endless_survival\": {\"enemy_unit_damage_multiplier\": 1, \"enemy_unit_health_multiplier\": 1, \"first_wave_ticks\": 14400, \"spawn_seed\": 1, \"wave_spacing_ticks\": 7200}, \"game_mode\": \"survival\", \"lobby_sec\": 1800, \"map\": \"Fork\", \"save_interval_sec\": 60, \"seed\": 1, \"time_limit_sec\": null, \"video\": {\"fps\": 5, \"height\": 540, \"record\": true, \"seats\": [\"seat-1\"], \"width\": 960}, \"wave_schedule_briefing\": false}"
+      },
+      "healthcheck": {
+        "interval": "5s",
+        "retries": 3,
+        "start_period": "1h",
+        "test": [
+          "CMD",
+          "/bin/sh",
+          "-c",
+          "PATH=/usr/local/bin:/usr/bin:/bin node -e \"fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))\""
+        ],
+        "timeout": "10s"
+      },
+      "networks": [
+        "control"
+      ],
+      "platform": "linux/amd64",
+      "volumes": [
+        "camera-control:/run/mindustry-control",
+        "seat-1-token:/run/seat-tokens/seat-1",
+        "seat-2-token:/run/seat-tokens/seat-2"
+      ]
+    },
+    "seat-1": {
+      "build": {
+        "context": "..",
+        "dockerfile": "environment/seat-box/Dockerfile"
+      },
+      "cpus": 2,
+      "depends_on": {
+        "main": {
+          "condition": "service_healthy"
+        }
+      },
+      "environment": {
+        "HARBOR_SEAT": "seat-1",
+        "HARBOR_SIM_URL": "http://api:8080"
+      },
+      "init": true,
+      "mem_limit": "2048m",
+      "networks": [
+        "agents"
+      ],
+      "volumes": [
+        "seat-1-token:/run/mindustry:ro"
+      ]
+    },
+    "seat-1-game": {
+      "build": {
+        "context": "..",
+        "dockerfile": "environment/Dockerfile",
+        "target": "runtime"
+      },
+      "command": [
+        "node",
+        "/opt/mindustry/environment/seat-client/client.mjs"
+      ],
+      "cpus": 2,
+      "depends_on": {
+        "main": {
+          "condition": "service_healthy"
+        }
+      },
+      "environment": {
+        "HARBOR_SEAT": "seat-1",
+        "HARBOR_SIM_HEADERS": "{}",
+        "HARBOR_SIM_URLS": "{\"9000\": \"http://main:9000\", \"9001\": \"http://main:9001\"}",
+        "MINDUSTRY_RECORDINGS_DIR": "/recordings/seat-1",
+        "MINDUSTRY_SEAT_RUN_DIR": "/tmp/mindustry-seat/seat-1"
+      },
+      "init": true,
+      "mem_limit": "2048m",
+      "networks": [
+        "control"
+      ],
+      "platform": "linux/amd64",
+      "stop_grace_period": "90s",
+      "volumes": [
+        "camera-control:/run/mindustry-control:ro"
+      ]
+    },
+    "seat-2": {
+      "build": {
+        "context": "..",
+        "dockerfile": "environment/seat-box/Dockerfile"
+      },
+      "cpus": 2,
+      "depends_on": {
+        "main": {
+          "condition": "service_healthy"
+        }
+      },
+      "environment": {
+        "HARBOR_SEAT": "seat-2",
+        "HARBOR_SIM_URL": "http://api:8080"
+      },
+      "init": true,
+      "mem_limit": "2048m",
+      "networks": [
+        "agents"
+      ],
+      "volumes": [
+        "seat-2-token:/run/mindustry:ro"
+      ]
+    },
+    "seat-2-game": {
+      "build": {
+        "context": "..",
+        "dockerfile": "environment/Dockerfile",
+        "target": "runtime"
+      },
+      "command": [
+        "node",
+        "/opt/mindustry/environment/seat-client/client.mjs"
+      ],
+      "cpus": 2,
+      "depends_on": {
+        "main": {
+          "condition": "service_healthy"
+        }
+      },
+      "environment": {
+        "HARBOR_SEAT": "seat-2",
+        "HARBOR_SIM_HEADERS": "{}",
+        "HARBOR_SIM_URLS": "{\"9000\": \"http://main:9000\", \"9001\": \"http://main:9001\"}",
+        "MINDUSTRY_RECORDINGS_DIR": "/recordings/seat-2",
+        "MINDUSTRY_SEAT_RUN_DIR": "/tmp/mindustry-seat/seat-2"
+      },
+      "init": true,
+      "mem_limit": "2048m",
+      "networks": [
+        "control"
+      ],
+      "platform": "linux/amd64",
+      "stop_grace_period": "90s",
+      "volumes": [
+        "camera-control:/run/mindustry-control:ro"
+      ]
+    }
+  },
+  "volumes": {
+    "camera-control": {},
+    "seat-1-token": {},
+    "seat-2-token": {}
+  }
+}

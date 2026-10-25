@@ -1,0 +1,63 @@
+{
+  "jobs_dir": "jobs",
+  "n_attempts": 1,
+  "n_concurrent_trials": 1,
+  "retry": {
+    "max_retries": 0
+  },
+  "environment": {
+    "type": "docker",
+    "delete": true
+  },
+  "tasks": [
+    {
+      "path": "."
+    }
+  ],
+  "participants": [
+    {
+      "seat": "seat-1",
+      "name": "codex",
+      "model_name": "openai/gpt-6-luna",
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      },
+      "kwargs": {
+        "reasoning_effort": "high"
+      }
+    },
+    {
+      "seat": "seat-2",
+      "name": "codex",
+      "model_name": "openai/gpt-6-luna",
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      },
+      "kwargs": {
+        "reasoning_effort": "high"
+      }
+    },
+    {
+      "seat": "seat-3",
+      "name": "codex",
+      "model_name": "openai/gpt-6-luna",
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      },
+      "kwargs": {
+        "reasoning_effort": "high"
+      }
+    },
+    {
+      "seat": "seat-4",
+      "name": "codex",
+      "model_name": "openai/gpt-6-luna",
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      },
+      "kwargs": {
+        "reasoning_effort": "high"
+      }
+    }
+  ]
+}

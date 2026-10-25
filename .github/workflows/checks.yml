@@ -1,0 +1,36 @@
+name: Task regression checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [mindustry-series, mindustry-endless-survival]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Recorder dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+      - name: Native recorder regression
+        run: node "${{ matrix.task }}"/solution/tests/native/screen-recorder.mjs
+      - name: JavaScript and Java regressions
+        run: node --test "${{ matrix.task }}"/solution/tests/*.test.mjs
+      - name: Survival configuration regressions
+        if: matrix.task == 'mindustry-endless-survival'
+        run: python3 -m unittest discover -s mindustry-endless-survival/solution/tests -p 'test_*.py'

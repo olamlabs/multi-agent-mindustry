@@ -1,0 +1,11 @@
+{
+  "name": "harbor-replay-viewer",
+  "displayName": "Harbor replay viewer",
+  "author": "Olam Labs",
+  "version": "1.0",
+  "minGameVersion": "160",
+  "main": "harbor.replay.ReplayViewer",
+  "java": true,
+  "hidden": true,
+  "description": "Plays a Mindustry series recording through the client's own packet handlers and follows one seat."
+}

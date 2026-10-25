@@ -1,0 +1,138 @@
+schema_version = "1.4"
+
+[task]
+name = "olamlabs/mindustry-series"
+description = "One to 100 consecutive PvP games of Mindustry with persistent agent sessions and teams."
+keywords = ["mindustry", "multi-agent", "series", "real-time"]
+
+[metadata]
+author_name = "Olam Labs"
+difficulty = "hard"
+category = "games"
+tags = ["mindustry", "multi-agent", "cooperation", "pvp", "factory", "real-time", "series"]
+
+# One host, explicit seat containers. Agents stop normally after the final chat window.
+[agent]
+timeout_sec = 63000
+
+[verifier]
+timeout_sec = 600
+
+# Harbor collects artifacts before verification. Wait here so early agent exits cannot
+# truncate the result, final camera segments or per-seat recording metadata.
+[[verifier.collect]]
+service = "main"
+command = "PATH=/usr/local/bin:/usr/bin:/bin node /app/sim/wait-for-series.mjs"
+timeout_sec = 63000
+
+[environment]
+build_timeout_sec = 3600
+cpus = 8
+memory_mb = 8192
+
+[[artifacts]]
+source = "/logs/sim"
+destination = "sim"
+
+# --- Generated seats: scripts/configure.py ---
+
+[[artifacts]]
+source = "/recordings/seat-1"
+service = "seat-1-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-1/status.json"
+service = "seat-1-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-1/ffmpeg.log"
+service = "seat-1-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-1/recording-validation.jsonl"
+service = "seat-1-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-1/failure.txt"
+service = "seat-1-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-1/renderers"
+service = "seat-1-game"
+
+[[artifacts]]
+source = "/recordings/seat-2"
+service = "seat-2-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-2/status.json"
+service = "seat-2-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-2/ffmpeg.log"
+service = "seat-2-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-2/recording-validation.jsonl"
+service = "seat-2-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-2/failure.txt"
+service = "seat-2-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-2/renderers"
+service = "seat-2-game"
+
+[[artifacts]]
+source = "/recordings/seat-3"
+service = "seat-3-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-3/status.json"
+service = "seat-3-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-3/ffmpeg.log"
+service = "seat-3-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-3/recording-validation.jsonl"
+service = "seat-3-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-3/failure.txt"
+service = "seat-3-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-3/renderers"
+service = "seat-3-game"
+
+[[artifacts]]
+source = "/recordings/seat-4"
+service = "seat-4-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-4/status.json"
+service = "seat-4-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-4/ffmpeg.log"
+service = "seat-4-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-4/recording-validation.jsonl"
+service = "seat-4-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-4/failure.txt"
+service = "seat-4-game"
+
+[[artifacts]]
+source = "/tmp/mindustry-seat/seat-4/renderers"
+service = "seat-4-game"
+
+[agents.seat-1]
+[agents.seat-2]
+[agents.seat-3]
+[agents.seat-4]

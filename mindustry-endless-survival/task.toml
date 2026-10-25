@@ -1,0 +1,53 @@
+# Configured by scripts/configure.py from this task; edit its local sources.
+# The simulation ends at core loss; a play clock that runs out first leaves an unscored attempt.
+schema_version = "1.4"
+version = "0.5.0"
+
+artifacts = [
+  { source = "/logs/sim", destination = "logs/sim" },
+  { source = "/recordings/seat-1", service = "seat-1-game" },
+  { source = "/tmp/mindustry-seat/seat-1/status.json", service = "seat-1-game" },
+  { source = "/tmp/mindustry-seat/seat-1/ffmpeg.log", service = "seat-1-game" },
+  { source = "/tmp/mindustry-seat/seat-1/recording-validation.jsonl", service = "seat-1-game" },
+  { source = "/tmp/mindustry-seat/seat-1/failure.txt", service = "seat-1-game" },
+  { source = "/tmp/mindustry-seat/seat-1/renderers", service = "seat-1-game" },
+  { source = "/recordings/seat-2", service = "seat-2-game" },
+  { source = "/tmp/mindustry-seat/seat-2/status.json", service = "seat-2-game" },
+  { source = "/tmp/mindustry-seat/seat-2/ffmpeg.log", service = "seat-2-game" },
+  { source = "/tmp/mindustry-seat/seat-2/recording-validation.jsonl", service = "seat-2-game" },
+  { source = "/tmp/mindustry-seat/seat-2/failure.txt", service = "seat-2-game" },
+  { source = "/tmp/mindustry-seat/seat-2/renderers", service = "seat-2-game" },
+]
+
+[task]
+name = "olamlabs/mindustry-endless-survival"
+description = "Endless Mindustry survival on Fork: 2 seats, seat-1 to seat-2, one team of all of them defend one core for as long as they can. The reward is native minutes survived."
+keywords = ["mindustry", "benchmark", "multi-agent", "survival", "endless"]
+
+[metadata]
+author_name = "Olam Labs"
+difficulty = "hard"
+category = "games"
+tags = ["mindustry", "benchmark", "multi-agent", "survival", "endless"]
+
+[agent]
+timeout_sec = 63000
+
+# The verifier runs once in main and writes the shared survival reward.
+[verifier]
+timeout_sec = 63000
+
+[[verifier.collect]]
+service = "main"
+command = "PATH=/usr/local/bin:/usr/bin:/bin node /app/task-runtime/collect.mjs"
+timeout_sec = 63000
+
+# main: the environment/Dockerfile simulation stage, native server, app and verifier.
+[environment]
+build_timeout_sec = 3600
+cpus = 8
+memory_mb = 8192
+
+# The seats: 2 seats, seat-1 to seat-2, one team of all of them. Every seat is graded, so play ends once every seat's agent has ended.
+[agents.seat-1]
+[agents.seat-2]

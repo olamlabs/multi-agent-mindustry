@@ -1,0 +1,25 @@
+{
+  "seats": 4,
+  "settings": {
+    "game_mode": "pvp",
+    "map": "Harbor Ring",
+    "time_limit_sec": 600,
+    "seed": 1,
+    "games": 3,
+    "chat_after_sec": 300,
+    "all_chat": false,
+    "lobby_sec": 1800,
+    "video": {
+      "record": true,
+      "fps": 5,
+      "width": 960,
+      "height": 540,
+      "seats": "all"
+    },
+    "replay": {
+      "record": true,
+      "segment_sec": 600,
+      "keyframe_sec": 60
+    }
+  }
+}

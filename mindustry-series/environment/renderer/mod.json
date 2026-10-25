@@ -1,0 +1,11 @@
+{
+  "name": "harbor-seat-viewer",
+  "displayName": "Harbor native seat viewer",
+  "author": "Olam Labs",
+  "version": "1.0",
+  "minGameVersion": "160",
+  "main": "harbor.mindustry.SeatViewer",
+  "java": true,
+  "hidden": true,
+  "description": "Read-only spectator camera for native multiplayer video evidence."
+}

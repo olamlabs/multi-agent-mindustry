@@ -1,0 +1,7 @@
+runs/
+jobs/
+__pycache__/
+*.pyc
+
+# Materialized by scripts/prepare.py before Harbor loads the task.
+/instructions/

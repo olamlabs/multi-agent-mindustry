@@ -1,0 +1,134 @@
+{
+  "setup": {
+    "settings": {
+      "game_mode": "pvp",
+      "time_limit_sec": 10,
+      "seed": 1,
+      "games": 2,
+      "lobby_sec": 120,
+      "chat_after_sec": 0,
+      "save_interval_sec": 60,
+      "all_chat": false,
+      "video": {
+        "record": true,
+        "fps": 5,
+        "width": 960,
+        "height": 540,
+        "seats": [
+          "seat-1"
+        ]
+      },
+      "replay": {
+        "record": true,
+        "segment_sec": 600,
+        "keyframe_sec": 60
+      },
+      "team_count": 2,
+      "team_size": 1
+    },
+    "seats": [
+      "seat-1",
+      "seat-2"
+    ],
+    "engine": {
+      "configured": true,
+      "game": 1,
+      "started": false,
+      "completed": false,
+      "terminal": null,
+      "reason": "not_started",
+      "game_mode": "pvp",
+      "map": "Glacier",
+      "map_file": "glacier",
+      "seed": 1,
+      "width": 250,
+      "height": 300,
+      "team_count": 2,
+      "team_size": 1,
+      "team_sizes": [
+        1,
+        1
+      ],
+      "elapsed_seconds": 0,
+      "time_limit_sec": 10,
+      "end_condition": "core_destroyed_or_time_limit",
+      "survival_censored": false,
+      "wave": 1,
+      "waves_completed": 0,
+      "winning_team": null,
+      "seat_teams": {
+        "seat-1": "sharded",
+        "seat-2": "crux"
+      },
+      "cores": [
+        {
+          "id": 210,
+          "team": "sharded",
+          "x": 145,
+          "y": 51,
+          "health": 3500,
+          "max_health": 3500
+        },
+        {
+          "id": 211,
+          "team": "crux",
+          "x": 145,
+          "y": 51,
+          "health": 3500,
+          "max_health": 3500
+        }
+      ]
+    }
+  },
+  "result": {
+    "started": true,
+    "results": [
+      {
+        "game": 1,
+        "reason": "time_limit",
+        "elapsed_seconds": 10.00165063,
+        "waves_completed": 0,
+        "wave": 1,
+        "winning_team": null,
+        "seat_teams": {
+          "seat-1": "sharded",
+          "seat-2": "crux"
+        },
+        "core_health_by_team": {
+          "sharded": {
+            "health": 3500,
+            "max_health": 3500
+          },
+          "crux": {
+            "health": 3500,
+            "max_health": 3500
+          }
+        },
+        "survival_censored": true
+      },
+      {
+        "game": 2,
+        "reason": "time_limit",
+        "elapsed_seconds": 10.010220296,
+        "waves_completed": 0,
+        "wave": 1,
+        "winning_team": null,
+        "seat_teams": {
+          "seat-1": "sharded",
+          "seat-2": "crux"
+        },
+        "core_health_by_team": {
+          "sharded": {
+            "health": 3500,
+            "max_health": 3500
+          },
+          "crux": {
+            "health": 3500,
+            "max_health": 3500
+          }
+        },
+        "survival_censored": true
+      }
+    ]
+  }
+}
