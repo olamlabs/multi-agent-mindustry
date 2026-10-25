@@ -24,9 +24,7 @@
       "fps": 5,
       "height": 540,
       "record": true,
-      "seats": [
-        "seat-1"
-      ],
+      "seats": "all",
       "width": 960
     }
   },

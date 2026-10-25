@@ -30,3 +30,14 @@ test('camera selection preserves roster order and rejects absent seats',()=>{
   assert.throws(()=>cameras(['seat-9'],8));assert.throws(()=>cameras(9,8));
   for(const bad of [-1,21,1.5,'some',null,['seat-1','seat-1'],['bob'],[7]])assert.throws(()=>validateSettings({video:{seats:bad}}));
 });
+
+test('release configuration records every seat as the roster changes',()=>{
+  const config=JSON.parse(readFileSync(new URL('../../config.json',import.meta.url)));
+  assert.equal(config.settings.video.record,true);
+  assert.equal(config.settings.video.seats,'all');
+  for(const n of [1, 2, 5, 20]){
+    const roster=seats(n);
+    const settings=resolveCameras(resolveTeams(validateSettings(config.settings),roster),roster);
+    assert.deepEqual(settings.video.seats,roster);
+  }
+});

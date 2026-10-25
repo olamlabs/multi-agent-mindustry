@@ -113,6 +113,8 @@ All commands below assume this task folder is your working directory. The defaul
 job runs four Codex agents with `openai/gpt-6-luna` and high reasoning effort.
 Harbor installs Codex in each agent container and configures API-key authentication.
 
+By default, `settings.video.record` is `true` and `settings.video.seats` is `"all"`, so every configured seat is recorded, including seats added later. To record selected viewpoints instead, set `settings.video.seats` to a list such as `["seat-1"]` in `config.json`, then rerun `python3 scripts/configure.py`.
+
 Results, logs and recordings are saved under `jobs/<timestamp>/`. To name a run,
 add a top-level `job_name` to `job.json`. Use a fresh name for each new run;
 Harbor resumes an existing job when its configuration matches.

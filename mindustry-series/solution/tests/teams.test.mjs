@@ -164,3 +164,14 @@ test('reward.json maps N=1, mixed wins, tied leaders and unequal teams to their 
     assert.ok(Object.values(reward).every(value=>typeof value==='number'&&Number.isFinite(value)));
   }
 });
+
+test('release configuration records every seat as the roster changes',()=>{
+  const config=JSON.parse(readFileSync(new URL('../../config.json',import.meta.url)));
+  assert.equal(config.settings.video.record,true);
+  assert.equal(config.settings.video.seats,'all');
+  for(const n of [4, 10, 20]){
+    const roster=seats(n);
+    const settings=resolveCameras(resolveTeams(validateSettings(config.settings),roster),roster);
+    assert.deepEqual(settings.video.seats,roster);
+  }
+});

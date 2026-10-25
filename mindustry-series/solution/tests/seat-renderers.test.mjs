@@ -169,11 +169,11 @@ test('a camera that fails while clients join rejects preparation', async t => {
 test('a camera that fails before its first frame rejects start, and healthy recordings still finalize', async t => {
   const f = await fixture(t);
   const handle = await f.ready();
-  const starting = startVideo(handle);
+  const starting = assert.rejects(startVideo(handle), /seat-5 camera failed before game start/);
 
   assert.equal((await f.request('seat-5', { status: 'failed', error: 'seat-5 control: transport failure' })).status, 200);
   for (const seat of seats.filter(seat => seat !== 'seat-5')) await f.request(seat, { status: 'recording', metadata: { first_frame: true } });
-  await assert.rejects(starting,/seat-5 camera failed before game start/);
+  await starting;
   const stopping = stopVideo(handle, { elapsed_sec: 9 });
   assert.equal((await (await f.request('seat-1')).json()).phase, 'stop', 'the healthy cameras get the stop phase');
   assert.equal(await settledSoon(stopping), false, 'the stop waits for the healthy cameras');

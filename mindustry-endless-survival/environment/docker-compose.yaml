@@ -32,7 +32,7 @@
       ],
       "environment": {
         "HARBOR_SEATS": "[\"seat-1\", \"seat-2\"]",
-        "HARBOR_SIM_SETTINGS": "{\"agent_ready_required\": true, \"all_chat\": false, \"endless_survival\": {\"enemy_unit_damage_multiplier\": 1, \"enemy_unit_health_multiplier\": 1, \"first_wave_ticks\": 14400, \"spawn_seed\": 1, \"wave_spacing_ticks\": 7200}, \"game_mode\": \"survival\", \"lobby_sec\": 1800, \"map\": \"Fork\", \"save_interval_sec\": 60, \"seed\": 1, \"time_limit_sec\": null, \"video\": {\"fps\": 5, \"height\": 540, \"record\": true, \"seats\": [\"seat-1\"], \"width\": 960}, \"wave_schedule_briefing\": false}"
+        "HARBOR_SIM_SETTINGS": "{\"agent_ready_required\": true, \"all_chat\": false, \"endless_survival\": {\"enemy_unit_damage_multiplier\": 1, \"enemy_unit_health_multiplier\": 1, \"first_wave_ticks\": 14400, \"spawn_seed\": 1, \"wave_spacing_ticks\": 7200}, \"game_mode\": \"survival\", \"lobby_sec\": 1800, \"map\": \"Fork\", \"save_interval_sec\": 60, \"seed\": 1, \"time_limit_sec\": null, \"video\": {\"fps\": 5, \"height\": 540, \"record\": true, \"seats\": \"all\", \"width\": 960}, \"wave_schedule_briefing\": false}"
       },
       "healthcheck": {
         "interval": "5s",
