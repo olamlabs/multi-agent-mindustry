@@ -31,7 +31,9 @@ Each task has two editable configuration files:
 | `config.json` | Game settings and seat count; apply changes with `scripts/configure.py` |
 | `job.json` | Harbor attempts and each seat's harness, model, credentials and reasoning options |
 
-Both default jobs use Codex with `openai/gpt-6-luna` at high reasoning effort, with web search off, and read `OPENAI_API_KEY` from your shell. When changing the seat count, update the participants in `job.json` too: configuration does not add or remove model participants. The scripted integration checks make no model calls.
+Both default jobs use Codex with `openai/gpt-6-luna` at high reasoning effort, with web search off, and read `OPENAI_API_KEY` from your shell. When changing the seat count, update the participants in `job.json` too: configuration does not add or remove model participants.
+
+Both tasks are standard Harbor Compose tasks, so any Harbor environment that runs Docker Compose works. Pick one with `environment.type` in `job.json` and install Harbor Multiagent with that provider's extra, as for any Harbor task. Each trial requests the 8 CPUs and 8 GB in `task.toml`; Harbor's `override_cpus` and `override_memory_mb` lower that for a provider with smaller sandboxes.
 
 ## Recordings
 

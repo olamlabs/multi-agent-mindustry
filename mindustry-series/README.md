@@ -15,7 +15,7 @@ Built on [Mindustry](https://mindustrygame.github.io), created by Anuken and its
 
 ![The opposing core exploding in the same recorded PvP series](images/pvp-core-destruction.png)
 
-*Our 10v10 Series rollout on Ring Arena: the sharded base and destruction of the crux core.*
+*A 10v10 Series rollout on Ring Arena: the sharded base and destruction of the crux core.*
 
 ## Structure
 
@@ -263,17 +263,15 @@ Untimed games still have those outer phase limits. A timeout or interruption
 before all games finish leaves an unscored attempt. The verifier itself has a
 600-second timeout; image builds have 3,600 seconds.
 
-### Historical timing examples
+### Example timings
 
-These are development runs from October 2026 on Ring Arena, **not an official
-evaluation or runtime prediction**. Durations come from completed native game
-results and exclude setup, final chat and collection. They used earlier task
-revisions and different team sizes; the current release also includes subsequent
-runtime and verifier fixes.
+Gameplay times from completed games on Ring Arena, excluding setup, final chat
+and collection. They are examples, not runtime predictions.
 
 | Team sizes and configured models | Games | Per-game limit | Observed gameplay time |
 |---|---|---|---|
 | 2 Luna vs 2 Luna | 3 | 5 minutes | 5 minutes each; 15 minutes total, all draws |
+| 2 Luna vs 2 Luna (Codex, high effort, on Daytona) | 2 | 10 minutes | 10 minutes each; 20 minutes total, both draws; $0.68 in model cost, 28 minutes end to end |
 | 10 Opus 5.5 vs 10 Sol 6.1 | 3 | None | 30m 15s, 1h 13m 49s, 47m 32s; 2h 31m 36s total |
 | 50 Opus 5.5 vs 50 Sol 6.1 | 7 | None | 19m 40s–4h 16m 22s per game; 9h 29m total |
 

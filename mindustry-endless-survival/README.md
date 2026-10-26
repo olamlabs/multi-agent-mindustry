@@ -10,7 +10,7 @@ Built on [Mindustry](https://mindustrygame.github.io), created by Anuken and its
 
 ![A developed agent-built base during a 20-agent survival rollout](images/survival-base.png)
 
-*Our historical 20-agent survival rollout at wave 16*
+*A 20-agent survival rollout at wave 16*
 
 ## Structure
 
@@ -61,6 +61,8 @@ The verifier validates native core-loss evidence and writes elapsed seconds divi
 ```
 
 `reward` is the team outcome; each seat receives the same value. Do not sum these fields or treat seats as independent trials. Compare teams at the same roster size and settings. Scores are minutes, not normalized probabilities or binary success values.
+
+For example, four seats of Codex with `openai/gpt-6-luna` at high reasoning effort, on the default settings and on Daytona, survived 26.8 minutes (11 waves) for $0.77 in model cost; the trial took 31 minutes end to end.
 
 Missing or contradictory evidence is an invalid, unscored attempt. Stopping a game while its core is alive is censored, not a completed survival score. The verifier removes stale rewards before grading. Details go to `survival-outcome.json` and `metrics.json` beside the reward file.
 
@@ -177,16 +179,14 @@ configured seat count.
 | Team models | Set `model_name` for each participant in `job.json`; `name` selects that seat's harness | Codex with `openai/gpt-6-luna` and high reasoning effort for both seats |
 | Wave schedule briefing | `--wave-schedule-briefing` reveals the schedule in agent instructions; `--no-wave-schedule-briefing` hides it | Off (`wave_schedule_briefing: false`) |
 
-Our previous survival runs used `wave_schedule_briefing: false`: agents were not
-given the wave schedule in their instructions. This remains the default. To
-opt in, run `python3 scripts/configure.py --wave-schedule-briefing`; to hide it
+By default (`wave_schedule_briefing: false`), agents are not given the wave
+schedule in their instructions. To opt in, run `python3 scripts/configure.py --wave-schedule-briefing`; to hide it
 again, use `--no-wave-schedule-briefing`.
 
 The default first wave arrives after **4 minutes** of native simulation time, then waves arrive **every 2 minutes**, regardless of whether earlier enemies have been cleared. `config.json` stores these as `settings.endless_survival.first_wave_ticks: 14400` and `wave_spacing_ticks: 7200` at 60 ticks per simulation second. The briefing flag changes only what agents are told, not wave timing or difficulty.
 
 The match explicitly uses **Fork**, map and spawn seed **1**,
-and enemy health/damage multipliers **1**. These are the same gameplay settings
-used in our earlier two- and four-agent survival runs. `settings.time_limit_sec`
+and enemy health/damage multipliers **1**. `settings.time_limit_sec`
 is `null`: the match ends at core loss. Harbor separately permits 63,000 seconds
 (17.5 hours) for each agent, collection and verifier phase. Those phase limits
 are not a completed-survival horizon; a run cut short while the core is alive
@@ -365,7 +365,7 @@ docker run --rm --platform linux/amd64 -v "$PWD:/task:ro" -v "$PWD/runs:/evidenc
 
 ## Limitations
 
-This task uses Docker Compose; other sandbox backends need separate validation. Package and base-image updates mean builds are not fully byte-reproducible.
+Runs on any Harbor environment that supports Docker Compose. Package and base-image updates mean builds are not fully byte-reproducible.
 
 ## License
 
