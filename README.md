@@ -33,22 +33,7 @@ Each task has two editable configuration files:
 
 Both default jobs use Codex with `openai/gpt-6-luna` at high reasoning effort, with web search off, and read `OPENAI_API_KEY` from your shell. When changing the seat count, update the participants in `job.json` too: configuration does not add or remove model participants. The scripted integration checks make no model calls.
 
-### Cloud sandboxes
-
-Harbor runs both tasks on providers that run Docker Compose in a sandbox. Daytona is tested. Install Harbor Multiagent with its `daytona` extra and set `DAYTONA_API_KEY`:
-
-```sh
-uv tool install --python 3.12 "harbor[daytona] @ git+https://github.com/olamlabs/harbor-multiagent@4a194016336ccd1ce3fcc799b10158ca0375eb63"
-export DAYTONA_API_KEY="your-daytona-api-key"
-```
-
-Then set the environment in `job.json`:
-
-```json
-"environment": {"type": "daytona", "delete": true, "override_cpus": 4}
-```
-
-Each trial runs in one sandbox sized from `task.toml` (8 CPUs, 8 GB). If your Daytona organization allows fewer CPUs per sandbox, `override_cpus` lowers the request; a four-seat game uses well under 4.
+Both tasks are standard Harbor Compose tasks, so any Harbor environment that runs Docker Compose works. Pick one with `environment.type` in `job.json` and install Harbor Multiagent with that provider's extra, as for any Harbor task. Each trial requests the 8 CPUs and 8 GB in `task.toml`; Harbor's `override_cpus` and `override_memory_mb` lower that for a provider with smaller sandboxes.
 
 ## Recordings
 

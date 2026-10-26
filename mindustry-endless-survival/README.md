@@ -365,7 +365,7 @@ docker run --rm --platform linux/amd64 -v "$PWD:/task:ro" -v "$PWD/runs:/evidenc
 
 ## Limitations
 
-Tested with local Docker and on Daytona; the repository README has the Daytona settings. Package and base-image updates mean builds are not fully byte-reproducible.
+Runs on any Harbor environment that supports Docker Compose. Package and base-image updates mean builds are not fully byte-reproducible.
 
 ## License
 
