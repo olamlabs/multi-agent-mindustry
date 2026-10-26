@@ -207,7 +207,7 @@ export async function main(argv = process.argv.slice(2)) {
   mkdirSync(join(build, 'classes'), { recursive: true });
   execFileSync('javac', ['--release', '17', '-cp', run.desktopJar, '-d', join(build, 'classes'), join(plugin, 'src', 'agentbridge', 'ReplayFormat.java'), ...readdirSync(join(here, 'viewer', 'src', 'agentbridge', 'replay')).map(name => join(here, 'viewer', 'src', 'agentbridge', 'replay', name))], { stdio: 'inherit' });
   run.viewerJar = join(build, 'agent-bridge-replay.jar');
-  execFileSync('jar', ['cf', run.viewerJar, '-C', join(build, 'classes'), '.', '-C', join(here, 'viewer'), 'mod.json', '-C', join(here, '../..'), 'LICENSE', '-C', join(here, '../..'), 'NOTICE.md'], { stdio: 'inherit' });
+  execFileSync('jar', ['cf', run.viewerJar, '-C', join(build, 'classes'), '.', '-C', join(here, 'viewer'), 'mod.json'], { stdio: 'inherit' });
   const used = new Set();
   const views = run.views.map(view => ({ ...view, width: run.width, height: run.height, display: `:${display(used)}` }));
   const interrupt = () => { for (const view of views) for (const proc of view.procs ?? []) if (alive(proc)) proc.child.kill('SIGKILL'); process.exit(130); };

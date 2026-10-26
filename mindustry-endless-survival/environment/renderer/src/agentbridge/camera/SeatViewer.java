@@ -9,6 +9,7 @@ import arc.scene.ui.Dialog;
 import mindustry.Vars;
 import mindustry.game.EventType.ClientLoadEvent;
 import mindustry.game.EventType.Trigger;
+import mindustry.game.EventType.WorldLoadEvent;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.mod.Mod;
@@ -16,15 +17,14 @@ import mindustry.ui.Styles;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 
 public final class SeatViewer extends Mod {
     private final String seat = System.getenv().getOrDefault("MINDUSTRY_VIEW_SEAT", "seat-1");
+    private final String host = System.getenv().getOrDefault("MINDUSTRY_VIEW_HOST", "127.0.0.1");
     private final String ready = System.getenv().getOrDefault("MINDUSTRY_VIEW_READY", "/tmp/view-ready");
-    private final String health = System.getenv().getOrDefault("MINDUSTRY_VIEW_HEALTH", ready + ".health.json");
     private boolean announced, loaded, connected;
-    private long lastFrame, lastCheck, lastHeartbeat, nextConnect, attemptStarted, disconnectedSince;
-    private int connections, attempts;
+    private long connectAt, attemptedAt;
+    private int worlds;
 
     private void atomicWrite(String file, String value) throws Exception {
         Path destination = Path.of(file), temporary = Path.of(file + ".tmp");
@@ -32,59 +32,26 @@ public final class SeatViewer extends Mod {
         Files.move(temporary, destination, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private void connectionEvent(String event, long now) throws Exception {
-        Files.writeString(Path.of(health + ".events.jsonl"), "{\"timestamp_ms\":" + now
-            + ",\"seat\":\"" + seat + "\",\"event\":\"" + event + "\",\"connections\":" + connections + "}\n",
-            StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-        Log.info("Seat camera @: @ at @", seat, event, now);
+    private void fail(String why) {
+        Log.err("Seat camera @: @", seat, why);
+        System.exit(1);
     }
 
     private void checkConnection() {
+        if (!loaded) return;
         long now = System.currentTimeMillis();
-        if (!loaded || now - lastCheck < 250) return;
-        lastCheck = now;
-        boolean live = Vars.net.client() && !Vars.netClient.isConnecting() && Vars.state.isGame()
-            && lastFrame > 0 && now - lastFrame < 5000;
-        try {
-            if (live != connected) {
-                connected = live;
-                if (live) {
-                    connections++;
-                    disconnectedSince = 0;
-                    attemptStarted = 0;
-                    connectionEvent("connected", now);
-                } else {
-                    disconnectedSince = now;
-                    nextConnect = now + 1000;
-                    connectionEvent("disconnected", now);
-                }
-            }
-            if (!live && now >= nextConnect) {
-
-                if ((Vars.net.client() || Vars.netClient.isConnecting()) && attemptStarted == 0) attemptStarted = now;
-                if (attemptStarted > 0 && now - attemptStarted >= 30000) {
-                    Vars.netClient.disconnectQuietly();
-                    attemptStarted = 0;
-                }
-                if (!Vars.net.client() && !Vars.netClient.isConnecting()) {
-                    for (var actor : Core.scene.getElements().copy()) if (actor instanceof Dialog dialog) dialog.hide();
-                    Vars.player.name = "__view_" + seat;
-                    attemptStarted = now;
-                    nextConnect = now + 5000;
-                    attempts++;
-                    connectionEvent("connect_attempt", now);
-                    Vars.ui.join.connect("127.0.0.1", 6567);
-                }
-            }
-            if (now - lastHeartbeat >= 1000) {
-                atomicWrite(health, "{\"seat\":\"" + seat + "\",\"timestamp_ms\":" + now
-                    + ",\"connected\":" + live + ",\"connections\":" + connections + ",\"attempts\":" + attempts
-                    + ",\"disconnected_since_ms\":" + disconnectedSince + "}\n");
-                lastHeartbeat = now;
-            }
-        } catch (Exception error) {
-            throw new RuntimeException("Cannot maintain viewer connection evidence", error);
+        if (attemptedAt == 0) {
+            if (now < connectAt) return;
+            for (var actor : Core.scene.getElements().copy()) if (actor instanceof Dialog dialog) dialog.hide();
+            Vars.player.name = "__view_" + seat;
+            attemptedAt = now;
+            Log.info("Seat camera @: connecting to @:6567", seat, host);
+            Vars.ui.join.connect(host, 6567);
+            return;
         }
+        if (Vars.net.client()) connected = true;
+        else if (connected) fail("lost its connection to " + host + ":6567");
+        else if (!Vars.netClient.isConnecting() && now - attemptedAt >= 5000) fail("could not connect to " + host + ":6567");
     }
 
     public SeatViewer() {
@@ -106,24 +73,26 @@ public final class SeatViewer extends Mod {
                 table.label(this::statusText).style(Styles.outlineLabel).fontScale(0.75f);
             });
             loaded = true;
-            nextConnect = System.currentTimeMillis() + 1000;
-            disconnectedSince = System.currentTimeMillis();
+            connectAt = System.currentTimeMillis() + 1000;
+        });
+        Events.on(WorldLoadEvent.class, event -> {
+            worlds++;
+            announced = false;
         });
         Events.run(Trigger.update, this::checkConnection);
         Events.run(Trigger.preDraw, () -> {
             if (!Vars.net.client() || Vars.netClient.isConnecting() || !Vars.state.isGame()) return;
             Player target = Groups.player.find(p -> seat.equals(p.name));
             if (target == null) return;
-            lastFrame = System.currentTimeMillis();
             Vars.ui.hudfrag.shown = false;
             if (target.dead()) Core.camera.position.set(target.x, target.y);
             else Core.camera.position.set(target.unit().x, target.unit().y);
 
             if (!announced) {
                 try {
-                    atomicWrite(ready, "{\"seat\":\"" + seat + "\",\"player_id\":" + target.id + ",\"team\":\"" + target.team().name + "\",\"native_client\":true}\n");
+                    atomicWrite(ready, "{\"seat\":\"" + seat + "\",\"player_id\":" + target.id + ",\"team\":\"" + target.team().name + "\",\"native_client\":true,\"worlds\":" + worlds + "}\n");
                     announced = true;
-                    Log.info("Seat camera ready for @ (player @)", seat, target.id);
+                    Log.info("Seat camera ready for @ (player @, world @)", seat, target.id, worlds);
                 } catch (Exception error) {
                     throw new RuntimeException("Cannot write viewer readiness", error);
                 }

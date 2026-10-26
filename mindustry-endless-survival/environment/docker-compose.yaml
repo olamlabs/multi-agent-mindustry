@@ -5,10 +5,7 @@
   },
   "services": {
     "api": {
-      "build": {
-        "context": "..",
-        "dockerfile": "environment/gateway/Dockerfile"
-      },
+      "build": "./gateway",
       "depends_on": {
         "main": {
           "condition": "service_healthy"
@@ -21,8 +18,7 @@
     },
     "main": {
       "build": {
-        "context": "..",
-        "dockerfile": "environment/Dockerfile",
+        "context": ".",
         "target": "simulation"
       },
       "command": [
@@ -51,16 +47,12 @@
       ],
       "platform": "linux/amd64",
       "volumes": [
-        "camera-control:/run/mindustry-control",
         "seat-1-token:/run/seat-tokens/seat-1",
         "seat-2-token:/run/seat-tokens/seat-2"
       ]
     },
     "seat-1": {
-      "build": {
-        "context": "..",
-        "dockerfile": "environment/seat-box/Dockerfile"
-      },
+      "build": "./seat-box",
       "cpus": 2,
       "depends_on": {
         "main": {
@@ -81,10 +73,7 @@
       ]
     },
     "seat-2": {
-      "build": {
-        "context": "..",
-        "dockerfile": "environment/seat-box/Dockerfile"
-      },
+      "build": "./seat-box",
       "cpus": 2,
       "depends_on": {
         "main": {
@@ -106,7 +95,6 @@
     }
   },
   "volumes": {
-    "camera-control": {},
     "seat-1-token": {},
     "seat-2-token": {}
   }

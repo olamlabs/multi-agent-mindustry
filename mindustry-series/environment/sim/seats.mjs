@@ -9,9 +9,6 @@ export function prepareSeats(env = process.env) {
   const canonical = seatsFromRoster(Object.fromEntries(seats.map(s => [s, {}])));
   const settings = validateSettings(JSON.parse(env.MINDUSTRY_SIM_SETTINGS ?? '{}'));
   resolveCameras(resolveTeams(settings, canonical), canonical);
-  const control = env.MINDUSTRY_CONTROL_DIR ?? '/run/mindustry-control';
-  mkdirSync(control, {recursive: true});
-  writeFileSync(`${control}/tunnel-secret`, randomBytes(32).toString('hex'), {mode: 0o600});
   const tokens = {};
   for (const seat of canonical) {
     tokens[seat] = randomBytes(24).toString('hex');

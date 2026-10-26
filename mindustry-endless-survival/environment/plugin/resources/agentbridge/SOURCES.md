@@ -9,6 +9,6 @@ Source: https://raw.githubusercontent.com/Anuken/Mindustry/17012d61d9e4c3cbd9820
 
 Original bundle SHA256: `7ea690b26bb60453e2ef75cc02ad11d8941bd7e0c70d2bbb112bd7be616aae61`.
 
-License: GPLv3, reproduced in the task root `LICENSE` (copied to `/opt/licenses/LICENSE` in images). Keep the source revision
+License: GPLv3, reproduced in the task root `LICENSE`. Keep the source revision
 aligned with the engine version when updating the runtime. Missing upstream
 descriptions remain null.

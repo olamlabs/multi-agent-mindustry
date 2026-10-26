@@ -2,8 +2,7 @@
   "services": {
     "main": {
       "build": {
-        "context": "..",
-        "dockerfile": "environment/Dockerfile",
+        "context": ".",
         "target": "simulation"
       },
       "networks": [
@@ -32,7 +31,6 @@
         "MINDUSTRY_SIM_SETTINGS": "{\"game_mode\": \"pvp\", \"map\": \"Ring Arena\", \"time_limit_sec\": 600, \"seed\": 1, \"games\": 3, \"chat_after_sec\": 300, \"all_chat\": false, \"lobby_sec\": 1800, \"video\": {\"record\": false, \"fps\": 5, \"width\": 960, \"height\": 540, \"seats\": []}, \"replay\": {\"record\": true, \"segment_sec\": 600, \"keyframe_sec\": 60}}"
       },
       "volumes": [
-        "camera-control:/run/mindustry-control",
         "seat-1-token:/run/seat-tokens/seat-1",
         "seat-2-token:/run/seat-tokens/seat-2",
         "seat-3-token:/run/seat-tokens/seat-3",
@@ -143,7 +141,6 @@
     }
   },
   "volumes": {
-    "camera-control": {},
     "seat-1-token": {},
     "seat-2-token": {},
     "seat-3-token": {},

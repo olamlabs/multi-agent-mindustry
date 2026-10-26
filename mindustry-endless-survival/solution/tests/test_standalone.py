@@ -25,8 +25,7 @@ class StandaloneTests(unittest.TestCase):
             self.assertEqual(len(list((self.root/'instructions').glob('seat-*.md'))),n)
             compose=json.loads((self.root/'environment/docker-compose.yaml').read_text())
             self.assertEqual(json.loads(compose['services']['main']['environment']['MINDUSTRY_SIM_SETTINGS'])['wave_schedule_briefing'],True)
-            self.assertEqual(compose['services']['main']['build']['context'],'..')
-            self.assertEqual(compose['services']['main']['build']['dockerfile'],'environment/Dockerfile')
+            self.assertEqual(compose['services']['main']['build'],{'context':'.','target':'simulation'})
             self.assertTrue(task['verifier']['collect'])
             self.assertEqual([name for name in compose['services'] if name.endswith('-game')],[])
             self.assertEqual(json.loads(compose['services']['main']['environment']['MINDUSTRY_SIM_SETTINGS'])['video']['seats'],[])
@@ -102,12 +101,12 @@ class StandaloneTests(unittest.TestCase):
             build=service.get('build')
             if build:
                 context=build if isinstance(build,str) else build['context']
-                self.assertTrue((self.root/'environment'/context).resolve().is_relative_to(self.root))
+                self.assertTrue((self.root/'environment'/context).resolve().is_relative_to(self.root/'environment'))
             self.assertNotIn('image',service)
         self.assertFalse(compose['networks']['control'].get('internal',False))
         self.assertEqual(compose['services']['main']['networks'],['control'])
         self.assertEqual(compose['services']['seat-1']['networks'],['agents'])
-        self.assertNotIn('/opt/mindustry/tunnel-secret',(self.root/'environment/Dockerfile').read_text())
+        self.assertNotIn('wstunnel',(self.root/'environment/Dockerfile').read_text())
     def test_configuration_needs_no_model_or_harness_policy(self):
         configure.configure(self.root,{'seats':2,'wave_schedule_briefing':False})
         contract=json.loads((self.root/'environment/task-runtime/contract.json').read_text())
@@ -128,6 +127,11 @@ class StandaloneTests(unittest.TestCase):
                 self.assertEqual([name for name in compose['services'] if name.endswith('-game')],[f'{seat}-game' for seat in expected])
                 self.assertEqual(sorted({artifact['service'] for artifact in task['artifacts'] if 'service' in artifact}),[f'{seat}-game' for seat in expected])
                 self.assertEqual(json.loads(compose['services']['main']['environment']['MINDUSTRY_SIM_SETTINGS'])['video']['seats'],chosen)
+                for seat in expected:
+                    camera=compose['services'][f'{seat}-game']
+                    self.assertEqual(camera['environment']['MINDUSTRY_CONTROL_URL'],'http://main:9001')
+                    self.assertEqual(camera['networks'],compose['services']['main']['networks'])
+                    self.assertNotIn('volumes',camera)
     def test_runtime_rejects_changed_benchmark_conditions(self):
         configure.configure(self.root,{'seats':2,'wave_schedule_briefing':False})
         script="""import assert from 'node:assert/strict';

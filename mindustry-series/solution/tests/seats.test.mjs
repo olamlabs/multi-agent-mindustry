@@ -11,7 +11,7 @@ const root=fileURLToPath(new URL('../..',import.meta.url));
 test('Harbor Multiagent gets fresh per-seat tokens and validates before writing them',t=>{
   const dir=mkdtempSync(join(tmpdir(),'series-tokens-'));
   t.after(()=>rmSync(dir,{recursive:true,force:true}));
-  const env={MINDUSTRY_SEATS:'["seat-1","seat-2"]',MINDUSTRY_SIM_SETTINGS:'{"games":1}',MINDUSTRY_CONTROL_DIR:join(dir,"control"),MINDUSTRY_SEAT_TOKENS:dir};
+  const env={MINDUSTRY_SEATS:'["seat-1","seat-2"]',MINDUSTRY_SIM_SETTINGS:'{"games":1}',MINDUSTRY_SEAT_TOKENS:dir};
   prepareSeats(env);
   const tokens=JSON.parse(env.MINDUSTRY_SEAT_TOKEN_MAP);
   assert.notEqual(tokens['seat-1'],tokens['seat-2']);

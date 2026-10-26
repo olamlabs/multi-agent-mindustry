@@ -48,8 +48,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Build the runtime from public dependencies
-        run: docker build --platform linux/amd64 --target runtime -f mindustry-series/environment/Dockerfile -t series-runtime:ci mindustry-series
+      - name: Build every image from environment/ alone, as cloud providers receive it
+        run: |
+          cp -R mindustry-series/environment "$RUNNER_TEMP/environment"
+          docker compose -f "$RUNNER_TEMP/environment/docker-compose.yaml" build
+          docker build --platform linux/amd64 --target runtime -t series-runtime:ci "$RUNNER_TEMP/environment"
       - name: Plugin through two games
         run: |
           for args in "--seats 4" "--seats 8"; do
@@ -81,8 +84,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Build the runtime from public dependencies
-        run: docker build --platform linux/amd64 --target runtime -f mindustry-endless-survival/environment/Dockerfile -t endless-runtime:ci mindustry-endless-survival
+      - name: Build every image from environment/ alone, as cloud providers receive it
+        run: |
+          cp -R mindustry-endless-survival/environment "$RUNNER_TEMP/environment"
+          docker compose -f "$RUNNER_TEMP/environment/docker-compose.yaml" build
+          docker build --platform linux/amd64 --target runtime -t endless-runtime:ci "$RUNNER_TEMP/environment"
       - name: Waves, clock, core loss and grading evidence
         run: docker run --rm -v "$PWD/mindustry-endless-survival:/task:ro" -v "$RUNNER_TEMP/evidence/survival:/evidence" -e SURVIVAL_EVIDENCE_DIR=/evidence endless-runtime:ci sh /task/solution/tests/native/run-survival.sh
       - name: API and telemetry

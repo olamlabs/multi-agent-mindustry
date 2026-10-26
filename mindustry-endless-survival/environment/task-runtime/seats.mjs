@@ -4,9 +4,6 @@ import {mkdirSync, writeFileSync} from 'node:fs';
 const seats = JSON.parse(process.env.MINDUSTRY_SEATS ?? '[]');
 if (!Array.isArray(seats) || seats.length === 0 || seats.some(seat => !/^seat-[1-9][0-9]*$/.test(seat)))
   throw new Error('MINDUSTRY_SEATS must list the seats, seat-1 onwards');
-const control = process.env.MINDUSTRY_CONTROL_DIR ?? '/run/mindustry-control';
-mkdirSync(control, {recursive: true});
-writeFileSync(`${control}/tunnel-secret`, randomBytes(32).toString('hex'), {mode: 0o600});
 const tokens = {};
 for (const seat of seats) {
   tokens[seat] = randomBytes(24).toString('hex');

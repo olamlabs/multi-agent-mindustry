@@ -18,15 +18,22 @@ async function call(path, value = {}) {
   if (!response.ok || !result.ok) throw new Error(`${path}: ${JSON.stringify(result)}`);
   return result.result;
 }
-const health = seat => JSON.parse(readFileSync(`${evidence}/renderers/${seat}-connection.json`, 'utf8'));
+const viewer = seat => JSON.parse(readFileSync(`${handle.runDir}/${seat}/ready.json`, 'utf8'));
 
-async function drawing(seat, since, what) {
+async function drawing(seat, worlds, what) {
   const until = Date.now() + 180_000;
   for (;;) {
-    const beat = health(seat);
-    if (beat.connected && beat.timestamp_ms > since + 6000) return beat;
-    assert.ok(Date.now() < until, `${seat}'s viewer is not drawing its seat ${what}: ${JSON.stringify(beat)}`);
+    const ready = viewer(seat);
+    if (ready.worlds === worlds) return ready;
+    assert.ok(Date.now() < until, `${seat}'s viewer is not drawing its seat ${what}: ${JSON.stringify(ready)}`);
     await sleep(500);
+  }
+}
+
+function clientsAlive() {
+  for (const seat of seats) {
+    const client = handle.processes.find(proc => proc.name === `${seat}-client`);
+    assert.ok(client && client.child.exitCode === null && client.child.signalCode === null, `${seat}'s viewer exited; see ${client?.logPath}`);
   }
 }
 
@@ -49,7 +56,7 @@ try {
   await startVideo(handle, 600);
   const begun = Date.now();
   await call('/start');
-  for (const seat of seats) await drawing(seat, begun, 'in game 1');
+  for (const seat of seats) await drawing(seat, 1, 'in game 1');
   await onlySeatUnits(setup.seat_teams);
   const first = Object.fromEntries(await Promise.all(seats.map(async seat => [seat, (await call('/status', { seat })).you.unit_id])));
 
@@ -61,17 +68,16 @@ try {
   assert.deepEqual([reset.game, reset.started, reset.seat_teams], [2, false, setup.seat_teams]);
   await call('/start');
   const after = {};
-  for (const seat of seats) after[seat] = await drawing(seat, resetAt, 'in game 2');
+  for (const seat of seats) after[seat] = await drawing(seat, 2, 'in game 2');
   await onlySeatUnits(setup.seat_teams);
   for (const seat of seats) {
     const you = (await call('/status', { seat })).you;
     assert.ok(you && you.unit_id !== first[seat], `${seat} has a new unit in game 2: ${JSON.stringify(you)}`);
   }
-  const events = Object.fromEntries(seats.map(seat => [seat, readFileSync(`${evidence}/renderers/${seat}-connection.json.events.jsonl`, 'utf8').trim().split('\n').map(line => JSON.parse(line))]));
-
-  for (const seat of seats) assert.equal(events[seat].filter(event => event.event === 'connect_attempt').length, 1, `${seat}: ${JSON.stringify(events[seat])}`);
+  clientsAlive();
 
   await sleep(6000);
+  clientsAlive();
   await call('/stop');
   const video = await stopVideo(handle);
   assert.equal(video.complete, true, 'ffmpeg must finalize the recording of both games');
@@ -81,9 +87,9 @@ try {
   const probe = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'json', `${evidence}/video/game.mp4`], { encoding: 'utf8' }));
   const recorded = Number(probe.format.duration), played = (Date.now() - begun) / 1000;
   assert.ok(recorded > played - 15, `the recording covers both games: ${recorded} s of ${played} s`);
-  const summary = { reset_ms: resetMs, recorded_sec: recorded, played_sec: played, viewers: after, events };
+  const summary = { reset_ms: resetMs, recorded_sec: recorded, played_sec: played, viewers: after };
   writeFileSync(`${evidence}/viewer-reset.json`, JSON.stringify(summary, null, 2));
-  console.log(JSON.stringify({ reset_ms: resetMs, recorded_sec: recorded, played_sec: played, connections: Object.fromEntries(seats.map(seat => [seat, after[seat].connections])) }));
+  console.log(JSON.stringify({ reset_ms: resetMs, recorded_sec: recorded, played_sec: played, worlds: Object.fromEntries(seats.map(seat => [seat, after[seat].worlds])) }));
 } finally {
   await stopRenderers(handle);
   server.kill('SIGTERM');

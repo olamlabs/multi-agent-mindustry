@@ -73,7 +73,7 @@ export function normalizeVideo(input = {}) {
   return video;
 }
 
-export async function bootRenderers({ evidence, video: input, seats, signal, seatScoped = false, onProgress = () => {} }) {
+export async function bootRenderers({ evidence, video: input, seats, signal, seatScoped = false, host = '127.0.0.1', onProgress = () => {} }) {
   signal?.throwIfAborted();
   const video = normalizeVideo(input);
   const seatNames = seats.map(seat => typeof seat === 'string' ? seat : seat.id);
@@ -96,7 +96,7 @@ export async function bootRenderers({ evidence, video: input, seats, signal, sea
     onProgress('Compiling native spectator camera plugin');
     await finish(launch(handle, 'viewer-compile', 'javac', ['--release', '17', '-cp', jar, '-d', classes, join(taskDir, 'renderer/src/agentbridge/camera/SeatViewer.java')]), signal);
     const mod = join(runDir, 'seat-viewer.jar');
-    await finish(launch(handle, 'viewer-package', 'jar', ['cf', mod, '-C', classes, '.', '-C', join(taskDir, 'renderer'), 'mod.json', '-C', join(taskDir, '..'), 'LICENSE', '-C', join(taskDir, '..'), 'NOTICE']), signal);
+    await finish(launch(handle, 'viewer-package', 'jar', ['cf', mod, '-C', classes, '.', '-C', join(taskDir, 'renderer'), 'mod.json']), signal);
     for (let index = 0; index < seatNames.length; index++) {
       signal?.throwIfAborted();
       const seat = seatNames[index], display = `:${99 + index}`;
@@ -109,7 +109,7 @@ export async function bootRenderers({ evidence, video: input, seats, signal, sea
 
       const game = launch(handle, `${seat}-client`, 'nice', ['-n', '10', 'java', '-XX:ActiveProcessorCount=2', '-Xms128m', '-Xmx640m', '-Dnodiscord=true', '-Djava.awt.headless=false', `-Dmindustry.data.dir=${dataDir}`, '-jar', jar, '-width', String(video.width), '-height', String(video.height), '-maximized', 'false'], {
         DISPLAY: display, SDL_VIDEODRIVER: 'x11', SDL_AUDIODRIVER: 'dummy', LIBGL_ALWAYS_SOFTWARE: '1', LP_NUM_THREADS: '1',
-        MINDUSTRY_VIEW_SEAT: seat, MINDUSTRY_VIEW_READY: ready, MINDUSTRY_VIEW_HEALTH: join(handle.logDir, `${seat}-connection.json`), MINDUSTRY_VIEW_FPS: String(video.fps),
+        MINDUSTRY_VIEW_SEAT: seat, MINDUSTRY_VIEW_HOST: host, MINDUSTRY_VIEW_READY: ready, MINDUSTRY_VIEW_FPS: String(video.fps),
       });
       while (!existsSync(ready)) {
         signal?.throwIfAborted();

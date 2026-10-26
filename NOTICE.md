@@ -7,6 +7,6 @@ The tasks integrate unmodified official Mindustry releases by Anuken and contrib
 - [Series notice](mindustry-series/NOTICE) and [dependency sources](mindustry-series/environment/dependencies/SOURCES.md).
 - [Survival notice](mindustry-endless-survival/NOTICE.md) and [dependency sources](mindustry-endless-survival/environment/dependencies/SOURCES.md).
 
-Arc, Node.js, wstunnel, the installed Harbor Multiagent runner and other dependencies retain their respective licenses. The GPL license for this repository’s original material does not replace those licenses. Screenshots come from our own task rollouts and depict Mindustry’s game visuals; their historical context is described in the task READMEs.
+Arc, Node.js, the installed Harbor Multiagent runner and other dependencies retain their respective licenses. The GPL license for this repository’s original material does not replace those licenses. Screenshots come from our own task rollouts and depict Mindustry’s game visuals; their historical context is described in the task READMEs.
 
 This repository distributes task source, not prebuilt game images or JARs. If you distribute binaries, provide the complete corresponding source required for their exact GPL-covered components, including applicable build and installation scripts. Preserve the task and dependency notices alongside that distribution.

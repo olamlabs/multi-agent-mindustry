@@ -1,17 +1,15 @@
 import { spawn } from 'node:child_process';
-import { appendFileSync, chmodSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { request as httpRequest } from 'node:http';
-import { request as httpsRequest } from 'node:https';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { bootRenderers, normalizeVideo, stopRenderers } from '../sim/renderer.mjs';
-import { ViewerHealth } from './view-health.mjs';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export function recordingSettings(state) {
   const seats = state.seats?.map(seat => typeof seat === 'string' ? seat : seat.id);
-  if ((!seats || seats.length < 1 || seats.length > 200) || new Set(seats).size !== seats.length || seats.some(seat => !Array.from({length: seats.length}, (_, i) => `seat-${i + 1}`).includes(seat))) throw new Error('Recording requires the canonical roster of one through 200 seats');
+  if (!seats || seats.length < 1 || new Set(seats).size !== seats.length || seats.some(seat => !Array.from({length: seats.length}, (_, i) => `seat-${i + 1}`).includes(seat))) throw new Error('Recording requires the canonical roster seat-1 through seat-N');
   const input = state.video ?? state.settings?.video ?? {};
   if (input.kbps !== undefined) throw new Error('video.kbps is not used: recordings encode at constant quality');
   const video = normalizeVideo(input);
@@ -20,9 +18,9 @@ export function recordingSettings(state) {
   return { ...video, segment_sec: Math.floor(segmentSec) };
 }
 
-function launch(name, executable, args, logDir, extra = {}) {
+function launch(name, executable, args, logDir) {
   const logPath = join(logDir, `${name}.log`), fd = openSync(logPath, 'a');
-  const child = spawn(executable, args, { env: { ...process.env, ...extra.env }, stdio: ['pipe', fd, fd] });
+  const child = spawn(executable, args, { stdio: ['pipe', fd, fd] });
   closeSync(fd);
   const proc = { name, child, logPath, error: null };
   child.on('error', error => { proc.error = error; });
@@ -151,11 +149,10 @@ async function stopAndVerify(proc, video, seat, recordings, logDir, state, verif
 }
 
 export function controlFetch(url, { method, headers, body }) {
-  const target = new URL(url);
   return new Promise((resolve, reject) => {
-    const req = (target.protocol === 'https:' ? httpsRequest : httpRequest)(target, { method, headers, agent: false }, res => {
-      const chunks = [];let bytes=0;
-      res.on('data', chunk => {bytes+=chunk.length;if(bytes>1048576)req.destroy(new Error('Control reply exceeds 1 MiB'));else chunks.push(chunk);});
+    const req = httpRequest(new URL(url), { method, headers, agent: false }, res => {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
       res.on('error', reject);
       res.on('end', () => {
         const text = Buffer.concat(chunks).toString('utf8');
@@ -167,15 +164,14 @@ export function controlFetch(url, { method, headers, body }) {
   });
 }
 
-export function seatControl({ seat, url, headers, secret, logDir, fetchImpl = controlFetch }) {
+export function seatControl({ seat, url, logDir, fetchImpl = controlFetch }) {
   const failure = (detail) => new Error(`${seat} control: ${detail}`);
   const request = async body => {
     let result;
     try {
-      result = await fetchImpl(url, { method: body ? 'POST' : 'GET', headers: { ...headers, 'X-Mindustry-Key': secret, ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+      result = await fetchImpl(url, { method: body ? 'POST' : 'GET', headers: body ? { 'Content-Type': 'application/json' } : {}, ...(body ? { body: JSON.stringify(body) } : {}) });
     } catch (error) {
-
-      throw failure((error?.cause?.code ?? error?.code) === 'ECONNREFUSED' ? 'connection refused' : 'transport failure');
+      throw failure(`transport failure: ${error.message}`);
     }
 
     if (!result.ok) throw failure(`HTTP ${result.status}`);
@@ -186,38 +182,22 @@ export function seatControl({ seat, url, headers, secret, logDir, fetchImpl = co
     writeFileSync(join(logDir, 'status.json'), JSON.stringify({ seat, status, metadata }, null, 2));
     return request({ status, metadata });
   };
-  let answering = true;
-  const poll = async previous => {
-    try {
-      const state = await request();
-      if (!answering) appendFileSync(join(logDir, 'failure.txt'), `${new Date().toISOString()} ${seat} control answers again\n`);
-      answering = true;
-      return state;
-    } catch (error) {
-      if (answering) appendFileSync(join(logDir, 'failure.txt'), `${new Date().toISOString()} ${error.message}; the recording goes on\n`);
-      answering = false;
-      return previous;
-    }
-  };
-  return { request, report, poll };
+  return { request, report };
 }
 
 export async function main() {
   const seat = process.env.MINDUSTRY_SEAT;
-  if (!/^seat-([1-9]|[1-9][0-9]|1[0-9][0-9]|200)$/.test(seat ?? '')) throw new Error('MINDUSTRY_SEAT must be seat-1 through seat-200');
-  const urls = JSON.parse(process.env.MINDUSTRY_SIM_URLS ?? '{}');
-  const headers = JSON.parse(process.env.MINDUSTRY_SIM_HEADERS ?? '{}');
-  if (!urls['9000'] || !urls['9001']) throw new Error('MINDUSTRY_SIM_URLS needs the tunnel and control ports, 9000 and 9001');
-  const secret = readFileSync(process.env.MINDUSTRY_TUNNEL_SECRET ?? '/run/mindustry-control/tunnel-secret', 'utf8').trim();
-  if (!secret) throw new Error('Missing private game tunnel key');
+  if (!/^seat-[1-9][0-9]*$/.test(seat ?? '')) throw new Error('MINDUSTRY_SEAT must be seat-N');
+  if (!process.env.MINDUSTRY_CONTROL_URL) throw new Error('MINDUSTRY_CONTROL_URL must name the camera control server, such as http://main:9001');
+  const control = new URL(process.env.MINDUSTRY_CONTROL_URL);
   const logDir = process.env.MINDUSTRY_SEAT_RUN_DIR ?? '/tmp/mindustry-seat';
   const recordings = process.env.MINDUSTRY_RECORDINGS_DIR ?? '/recordings';
   mkdirSync(logDir, { recursive: true });
   mkdirSync(recordings, { recursive: true });
   const controller = new AbortController();
-  let native = null, tunnel = null, recording = null, lastState = null, stopping = false, idle = null;
-  const url = `${urls['9001'].replace(/\/$/, '')}/seats/${seat}`;
-  const { request, report, poll } = seatControl({ seat, url, headers, secret, logDir });
+  let native = null, recording = null, lastState = null, stopping = false;
+  const url = `${control.href.replace(/\/$/, '')}/seats/${seat}`;
+  const { request, report } = seatControl({ seat, url, logDir });
 
   const cleanup = async () => {
     controller.abort();
@@ -226,11 +206,8 @@ export async function main() {
       while (alive(recording)) await sleep(100);
     }
     await stopRenderers(native);
-    if (tunnel && alive(tunnel)) tunnel.child.kill('SIGTERM');
   };
   const interrupted = async signal => {
-
-    if (idle) return idle();
     if (stopping) return;
     stopping = true;
 
@@ -242,47 +219,23 @@ export async function main() {
   process.once('SIGINT', () => { void interrupted('SIGINT'); });
   try {
     lastState = await request();
-    if (lastState.camera === false) {
-
-      writeFileSync(join(logDir, 'status.json'), JSON.stringify({ seat, status: 'no_camera', metadata: {} }, null, 2));
-      writeFileSync(join(recordings, 'metadata.json'), JSON.stringify({ type: 'video', seat, camera: false, record: false, complete: true, frames: 0, files: [] }, null, 2));
-      const keepAlive = setInterval(() => {}, 2 ** 30);
-      await new Promise(resolve => { idle = resolve; });
-      clearInterval(keepAlive);
-      return;
-    }
+    if (lastState.camera !== true) throw new Error(`${seat} has no camera in video.seats`);
     if (lastState.phase === 'stop') throw new Error('The match stopped before this client connected');
     const video = recordingSettings(lastState);
     const verifier = new SegmentVerifier(video, seat, recordings, logDir);
-    const viewer = new ViewerHealth(seat);
-    const checkViewer = () => viewer.update(JSON.parse(readFileSync(join(native.logDir, `${seat}-connection.json`), 'utf8')));
     if (!lastState.seats.some(value => (typeof value === 'string' ? value : value.id) === seat)) throw new Error('Seat is absent from the roster');
-    {
-      const headerFile = join(logDir, 'sim-headers.txt');
-      if (Object.entries(headers).some(([key, value]) => /[\r\n]/.test(key + value))) throw new Error('Invalid tunnel headers');
-      writeFileSync(headerFile, Object.entries(headers).map(([key, value]) => `${key}: ${value}\n`).join(''), { mode: 0o600 });
-      chmodSync(headerFile, 0o600);
-      tunnel = launch('tunnel', 'wstunnel', ['client', '-L', 'tcp://127.0.0.1:6567:127.0.0.1:6567', '-L', 'udp://127.0.0.1:6567:127.0.0.1:6567?timeout_sec=0', '--http-headers-file', headerFile, urls['9000'].replace(/^http/, 'ws')], logDir, { env: { WSTUNNEL_HTTP_UPGRADE_PATH_PREFIX: secret } });
-      await sleep(500);
-      requireAlive(tunnel);
-      native = await bootRenderers({ evidence: logDir, video: { ...video, record: true }, seats: [seat], seatScoped: true, signal: controller.signal, onProgress: message => console.log(message) });
-      const ready = JSON.parse(readFileSync(join(native.logDir, `${seat}-ready.json`), 'utf8'));
-      if (ready.seat !== seat || ready.native_client !== true) throw new Error('Native camera readiness did not match the assigned seat');
-      await report('ready', { record: video.record, camera: ready });
-    }
+    native = await bootRenderers({ evidence: logDir, video: { ...video, record: true }, seats: [seat], seatScoped: true, host: control.hostname, signal: controller.signal, onProgress: message => console.log(message) });
+    const ready = JSON.parse(readFileSync(join(native.logDir, `${seat}-ready.json`), 'utf8'));
+    if (ready.seat !== seat || ready.native_client !== true) throw new Error('Native camera readiness did not match the assigned seat');
+    await report('ready', { record: video.record, camera: ready });
     let recordAcknowledged = false;
     while (!stopping) {
-      if (tunnel) requireAlive(tunnel);
       for (const proc of native?.processes ?? []) if (proc.name.endsWith('-client') || proc.name.endsWith('-xvfb')) requireAlive(proc);
-      lastState = await poll(lastState);
-      checkViewer();
+      lastState = await request();
       if (lastState.phase === 'stop') {
-        viewer.requireConnected();
         stopping = true;
         if (video.record && !recording) throw new Error('The match stopped before recording began');
         const metadata = video.record ? await stopAndVerify(recording, video, seat, recordings, logDir, lastState, verifier) : { record: false, complete: true, first_frame: false, frames: 0, files: [] };
-        metadata.viewer_connection = checkViewer();
-        viewer.requireConnected();
         writeFileSync(join(recordings, 'metadata.json'), JSON.stringify(metadata, null, 2));
         await report('stopped', metadata);
         await cleanup();
@@ -293,17 +246,15 @@ export async function main() {
           recording = launch('ffmpeg', 'nice', ['-n', '10', 'ffmpeg', ...recordingArgs(video, seat, recordings)], logDir);
           await waitForFirstFrame(recording, recordings, seat, logDir);
         }
-        if (checkViewer().connected) {
-          await report('recording', { record: video.record, first_frame: video.record, fps: video.fps, width: video.width, height: video.height });
-          recordAcknowledged = true;
-        }
+        await report('recording', { record: video.record, first_frame: video.record, fps: video.fps, width: video.width, height: video.height });
+        recordAcknowledged = true;
       }
       if (recording) { requireAlive(recording); await verifier.verify(); }
       await sleep(500);
     }
   } catch (error) {
     stopping = true;
-    appendFileSync(join(logDir, 'failure.txt'), `${error.stack ?? error}\n`);
+    writeFileSync(join(logDir, 'failure.txt'), `${error.stack ?? error}\n`);
     await report('failed', { error: error.message }).catch(failure => console.error(`${seat} could not report its failure: ${failure.message}`));
     await cleanup();
     throw error;

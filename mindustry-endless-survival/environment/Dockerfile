@@ -23,7 +23,7 @@ binary = archive.extractfile(name + '/bin/node').read(); \
 open('/usr/bin/node', 'wb').write(binary)" \
  && chmod 0755 /usr/bin/node
 
-COPY LICENSE NOTICE.md environment/dependencies/ARC-LICENSE environment/dependencies/WSTUNNEL-LICENSE environment/dependencies/SOURCES.md /opt/licenses/
+COPY dependencies/ARC-LICENSE dependencies/SOURCES.md /opt/licenses/
 
 ADD --checksum=sha256:f7b899a4038b95b14a824d5f8993984f79d73baa3254c385b6538327f9c0befd https://github.com/Anuken/Mindustry/releases/download/v160.7/server-release.jar /opt/mindustry/server.jar
 ADD --checksum=sha256:36d94941a1639478ad1d9be25a9d802c6f77552f400c6da0338b7b019f63a0d1 https://github.com/Anuken/Mindustry/releases/download/v160.7/Mindustry.jar /opt/mindustry/Mindustry.jar
@@ -33,24 +33,20 @@ RUN chmod 0644 /opt/mindustry/*.jar \
  && ffmpeg -hide_banner -filters 2>&1 | grep -q drawtext
 WORKDIR /task
 
-ADD --checksum=sha256:9708a99717b5a951453c2ff7c14c25d3418d02ca7fcb96fdb382a8f2083bab5e https://github.com/erebe/wstunnel/releases/download/v11.0.0/wstunnel_11.0.0_linux_amd64.tar.gz /tmp/wstunnel.tar.gz
-RUN tar -xzf /tmp/wstunnel.tar.gz -C /usr/local/bin wstunnel \
- && chmod 0755 /usr/local/bin/wstunnel \
- && rm /tmp/wstunnel.tar.gz \
- && mkdir -p /recordings
+RUN mkdir -p /recordings
 
-COPY environment/seat-client/ /opt/mindustry/environment/seat-client/
-COPY environment/renderer/ /opt/mindustry/environment/renderer/
-COPY environment/sim/renderer.mjs /opt/mindustry/environment/sim/renderer.mjs
-COPY environment/dependencies/screen-recorder.mjs /opt/mindustry/environment/dependencies/screen-recorder.mjs
+COPY seat-client/ /opt/mindustry/environment/seat-client/
+COPY renderer/ /opt/mindustry/environment/renderer/
+COPY sim/renderer.mjs /opt/mindustry/environment/sim/renderer.mjs
+COPY dependencies/screen-recorder.mjs /opt/mindustry/environment/dependencies/screen-recorder.mjs
 
 FROM runtime AS simulation
 WORKDIR /app
-COPY environment/sim/ /app/sim/
-COPY environment/plugin/ /app/plugin/
-COPY environment/renderer/ /app/renderer/
-COPY environment/dependencies/ /app/dependencies/
-COPY environment/task-runtime/ /app/task-runtime/
+COPY sim/ /app/sim/
+COPY plugin/ /app/plugin/
+COPY renderer/ /app/renderer/
+COPY dependencies/ /app/dependencies/
+COPY task-runtime/ /app/task-runtime/
 RUN mkdir -p /logs/sim && chmod 0777 /logs/sim
-EXPOSE 8080 9000 9001
+EXPOSE 8080 9001
 CMD ["node", "/app/task-runtime/seats.mjs", "--seat-clients"]

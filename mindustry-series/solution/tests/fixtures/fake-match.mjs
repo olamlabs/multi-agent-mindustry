@@ -1,4 +1,3 @@
-import {EventEmitter} from 'node:events';
 import {spawn} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
 import {serveMindustry} from '../../../environment/sim/app.mjs';
@@ -59,9 +58,7 @@ const scripted={alwaysBoot:true,boot:async({signal,onListening})=>{if(process.en
   writeFileSync(process.env.SIM_LOGS+'/camera-boot-waiting','');
   await new Promise((_,reject)=>{if(signal.aborted)reject(new Error('Camera boot aborted'));else signal.addEventListener('abort',()=>reject(new Error('Camera boot aborted')),{once:true});});
 }if(process.env.FAKE_NO_CLIENTS==='1'){onListening();await new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(new Error('The lobby closed')),{once:true}));}return {};},start:async()=>{},stop:async()=>({type:'video',complete:true,layout:'fixture'}),close:async()=>{}};
-const tunnel=()=>Object.assign(new EventEmitter(),{exitCode:null,signalCode:null,kill(signal){this.signalCode=signal;}});
 const native={alwaysBoot:true,
-  boot:options=>coordinator.bootRenderers({...options,controlHost:'127.0.0.1',controlPort:Number(process.env.FAKE_CONTROL_PORT),
-    tunnelPort:Number(process.env.FAKE_TUNNEL_PORT),secretFile:process.env.FAKE_TUNNEL_SECRET_FILE,launchTunnel:tunnel}),
+  boot:options=>coordinator.bootRenderers({...options,controlHost:'127.0.0.1',controlPort:Number(process.env.FAKE_CONTROL_PORT)}),
   start:coordinator.startVideo,stop:coordinator.stopVideo,close:coordinator.stopRenderers};
 await serveMindustry({engine,renderer:process.env.FAKE_SEAT_PORTS==='1'?native:scripted});

@@ -1,8 +1,0 @@
-# Docker builds need only the runtime source and license notices.
-*
-!environment/
-!environment/**
-!LICENSE
-!NOTICE.md
-**/__pycache__/
-**/*.pyc

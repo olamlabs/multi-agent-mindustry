@@ -29,7 +29,7 @@ mindustry-endless-survival/
 │   ├── sim/                  # API, lifecycle, evidence and deterministic grading
 │   ├── task-runtime/         # Scenario contract, startup and collection
 │   ├── renderer/             # Game client plugin for recording
-│   ├── seat-client/          # Per-seat recording and camera health
+│   ├── seat-client/          # Per-seat live camera and its recording
 │   ├── render-recording/     # Render the game log into seat or fixed-camera videos
 │   ├── gateway/              # Authenticated API proxy
 │   ├── seat-box/             # Agent workspace image
@@ -44,7 +44,7 @@ mindustry-endless-survival/
 
 ## How it works
 
-Agents control the game through the HTTP API. The game server writes a log of everything it sends to all players, and `render-recording/` turns that log into a video of any seat after the run; see [Recreating recordings from the game log](#recreating-recordings-from-the-game-log). With live cameras on, `environment/renderer/`, a small plugin for the native Mindustry game client, follows each agent’s player so a camera container can film that seat during the game. `seat-client/` manages those client processes and video files.
+Agents control the game through the HTTP API. The game server writes a log of everything it sends to all players, and `render-recording/` turns that log into a video of any seat after the run; see [Recreating recordings from the game log](#recreating-recordings-from-the-game-log). With live cameras on, `environment/renderer/`, a small plugin for the native Mindustry game client, follows each agent’s player so a camera container can film that seat during the game. The camera's game client joins the server directly at `main:6567` on the Compose network, and reports to the control server at `MINDUSTRY_CONTROL_URL` (`http://main:9001`). `seat-client/` manages those client processes and video files.
 
 Agents join a readiness barrier, and the game waits for each live camera when cameras are on. Agents then use the HTTP API to inspect the world, move, build, mine and communicate. The game runs until the core is destroyed. If agents stop first, collection lets the native game finish before verification.
 
@@ -259,7 +259,7 @@ The other game logs sit next to `replay/` in `logs/sim/`: `journal.jsonl` (each 
 - The runtime image built from it:
 
   ```sh
-  docker build -f environment/Dockerfile --platform linux/amd64 --target runtime -t endless-runtime .
+  docker build --platform linux/amd64 --target runtime -t endless-runtime environment
   ```
 
 The image holds the official Mindustry desktop and server JARs in `/opt/mindustry`, pinned by SHA-256 in the Dockerfile, with JDK 21, Node.js 22, Xvfb, xdotool and FFmpeg. The renderer compiles a small viewer mod against the desktop JAR on each run. It reads the log headers before it starts anything and refuses a log made with a different server JAR or Mindustry build, so render in an image built from the same task revision.
@@ -359,7 +359,7 @@ The integration test creates two fresh two-seat Docker worlds and checks the doc
 Fast regression tests stay at `solution/tests/`; shared data and process helpers live in `fixtures/`. The `native/` folder contains real-engine checks: `run-survival.sh` checks waves and core loss; `run-check.sh api|telemetry|evaluation` checks player actions and native counters; `renderer.mjs` and `construction.mjs` check recorded video and building through the agent API; `replay.mjs` plays three games to core loss and checks the game log, rendering from it, its refusals, that a broken log fails the run, and that a disabled log leaves the score alone. Run these checks in the built runtime image. For example:
 
 ```sh
-docker build -f environment/Dockerfile --platform linux/amd64 --target runtime -t endless-runtime .
+docker build --platform linux/amd64 --target runtime -t endless-runtime environment
 docker run --rm --platform linux/amd64 -v "$PWD:/task:ro" endless-runtime \
   sh /task/solution/tests/native/run-check.sh api
 docker run --rm --platform linux/amd64 -v "$PWD:/task:ro" -v "$PWD/runs:/evidence" \

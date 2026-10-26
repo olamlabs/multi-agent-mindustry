@@ -33,7 +33,7 @@ mindustry-series/
 │   ├── plugin/               # Native game bridge and replay capture
 │   ├── sim/                  # API, series lifecycle, evidence and grading
 │   ├── renderer/             # Native spectator camera plugin
-│   ├── seat-client/          # Per-seat recording and camera health
+│   ├── seat-client/          # Per-seat live camera and its recording
 │   ├── render-recording/     # Film any seat from the game log
 │   ├── gateway/              # Authenticated API proxy
 │   ├── seat-box/             # Agent workspace image
@@ -190,7 +190,8 @@ harness, model and credentials. The configuration flags below are shortcuts that
 update `config.json`; they are not temporary overrides for `harbor run`.
 
 Edit `config.json`, then run `python3 scripts/configure.py` to apply changes.
-The script regenerates Compose, the Harbor roster and seat instructions from
+The script regenerates Compose, the Harbor roster, the seat instructions and
+`environment/sim/instruction.md`, the copy the game reads for `/brief`, from
 `instruction.md`. Its `--games` and `--seats` flags also update those two fields.
 Changes persist in this checkout; rerunning the script does not reset defaults.
 It does not edit `job.json`: its participants must match `seat-1` through
@@ -366,7 +367,7 @@ checksum-pinned Mindustry v160.7 server and desktop JARs. Build it from this
 task folder:
 
 ```sh
-docker build --platform linux/amd64 --target runtime -f environment/Dockerfile -t mindustry-series-runtime .
+docker build --platform linux/amd64 --target runtime -t mindustry-series-runtime environment
 ```
 
 Use an image built from this task. The renderer refuses a recording whose server

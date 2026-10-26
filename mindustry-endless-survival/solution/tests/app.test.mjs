@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import net from 'node:net';
 import {execFileSync} from 'node:child_process';
-import {existsSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
+import {existsSync,mkdtempSync,readFileSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -142,24 +142,17 @@ test('settings the app cannot use never start',async()=>{
 
 async function withSeatPorts(t) {
   const free=async()=>{const server=net.createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const {port}=server.address();await new Promise(resolve=>server.close(resolve));return port;};
-  const control=await free(),tunnel=await free();
-  const dir=mkdtempSync(join(tmpdir(),'mindustry-seat-ports-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
-  const key='k'.repeat(64),keyFile=join(dir,'tunnel-key');writeFileSync(keyFile,key);
-  const app=await startApp({main,seats,settings,env:{FAKE_SEAT_PORTS:'1',FAKE_CONTROL_PORT:String(control),FAKE_TUNNEL_PORT:String(tunnel),FAKE_TUNNEL_SECRET_FILE:keyFile}});
+  const control=await free();
+  const app=await startApp({main,seats,settings,env:{FAKE_SEAT_PORTS:'1',FAKE_CONTROL_PORT:String(control)}});
   t.after(()=>app.stop());
-  const url=seat=>`http://127.0.0.1:${control}/seats/${seat}`,headers={'x-mindustry-key':key};
-  const read=async seat=>{try{const reply=await fetch(url(seat),{headers});return reply.ok?await reply.json():null;}catch{return null;}};
-  const report=async(seat,body)=>assert.equal((await fetch(url(seat),{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify(body)})).status,200);
-  const listen=async()=>{const listener=net.createServer(socket=>socket.destroy());await new Promise(resolve=>listener.listen(tunnel,'127.0.0.1',resolve));t.after(()=>listener.close());};
-  return {app,read,report,listen};
+  const url=seat=>`http://127.0.0.1:${control}/seats/${seat}`;
+  const read=async seat=>{try{const reply=await fetch(url(seat));return reply.ok?await reply.json():null;}catch{return null;}};
+  const report=async(seat,body)=>assert.equal((await fetch(url(seat),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})).status,200);
+  return {app,read,report};
 }
 
-test('health waits for both seat ports to listen, and the match waits for every seat\'s video client',async t=>{
-  const {app,read,report,listen}=await withSeatPorts(t);
-
-  await new Promise(resolve=>setTimeout(resolve,300));
-  assert.equal(await app.healthy(),false,'not healthy while the game tunnel refuses connections');
-  await listen();
+test('health waits for the camera control port, and the match waits for every seat\'s video client',async t=>{
+  const {app,read,report}=await withSeatPorts(t);
   await app.until(()=>app.healthy(),{what:'health'});
 
   for(const seat of seats)assert.equal((await read(seat))?.phase,'connect',`${seat}'s first control request once healthy`);
@@ -176,8 +169,7 @@ test('health waits for both seat ports to listen, and the match waits for every 
 });
 
 test('a camera that fails mid-game fails nothing: the other cameras finalize, the match ends and is graded',async t=>{
-  const {app,read,report,listen}=await withSeatPorts(t);
-  await listen();
+  const {app,read,report}=await withSeatPorts(t);
   await app.until(()=>app.healthy(),{what:'health'});
   for(const seat of seats)await report(seat,{status:'ready',metadata:{}});
   for(const seat of seats)await app.seat(seat).post('/ready');

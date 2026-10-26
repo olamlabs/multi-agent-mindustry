@@ -1,14 +1,10 @@
-import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { createHash, timingSafeEqual } from 'node:crypto';
-import { appendFileSync, closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
-import { connect } from 'node:net';
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { normalizeVideo } from './renderer.mjs';
 import { MAX_SEATS } from './settings.mjs';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-const hash = value => createHash('sha256').update(value).digest();
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function note(handle, event) {
@@ -17,49 +13,16 @@ function note(handle, event) {
 function save(handle) {
   writeFileSync(join(handle.logDir, 'status.json'), JSON.stringify({ phase: handle.phase, cameras: handle.cameras, seats: Object.fromEntries(handle.reports), video: handle.video, elapsed_sec: handle.elapsedSec }, null, 2) + '\n');
 }
-function defaultTunnel({ logDir, tunnelPort, secret }) {
-  const log = openSync(join(logDir, 'tunnel.log'), 'a');
-  try {
-    return spawn('wstunnel', ['server', `ws://0.0.0.0:${tunnelPort}`, '--restrict-to', '127.0.0.1:6567'], {
-      env: { ...process.env, WSTUNNEL_RESTRICT_HTTP_UPGRADE_PATH_PREFIX: secret }, stdio: ['ignore', log, log],
-    });
-  } finally { closeSync(log); }
-}
-function processError(handle) {
-  if (handle.tunnelError) return `Game tunnel failed: ${handle.tunnelError.message}`;
-  if (handle.tunnel && (handle.tunnel.exitCode !== null || handle.tunnel.signalCode !== null)) return `Game tunnel exited (${handle.tunnel.exitCode ?? handle.tunnel.signalCode})`;
-  return null;
-}
 
 async function waitFor(handle, status) {
   while (true) {
     handle.signal?.throwIfAborted();
     if (handle.stopped) throw new Error('Seat renderer coordinator stopped');
-    const error = processError(handle);
-    if (error) throw new Error(error);
     if (handle.cameras.every(seat => [status, 'failed'].includes(handle.reports.get(seat)?.status))) return;
     await sleep(100);
   }
 }
 
-function accepts(port) {
-  return new Promise(resolve => {
-    const socket = connect(port, '127.0.0.1');
-    socket.once('connect', () => { socket.destroy(); resolve(true); });
-    socket.once('error', () => { socket.destroy(); resolve(false); });
-  });
-}
-
-async function tunnelListening(handle, port) {
-  while (true) {
-    handle.signal?.throwIfAborted();
-    if (handle.stopped) throw new Error('Seat renderer coordinator stopped');
-    const error = processError(handle);
-    if (error) throw new Error(error);
-    if (await accepts(port)) return;
-    await sleep(100);
-  }
-}
 function metadataValid(seat, metadata, record = true) {
   if (!record) return metadata.record === false && metadata.complete === true && metadata.frames === 0 && Array.isArray(metadata.files) && metadata.files.length === 0;
   return metadata.complete === true && metadata.first_frame === true && Number.isSafeInteger(metadata.frames) && metadata.frames > 0 &&
@@ -77,10 +40,8 @@ async function readBody(req) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
   catch { throw Object.assign(new Error('Invalid JSON report'), { status: 400 }); }
 }
-async function request(handle, secretHash, req, res) {
+async function request(handle, req, res) {
   try {
-    const supplied = req.headers['x-mindustry-key'];
-    if (typeof supplied !== 'string' || !timingSafeEqual(hash(supplied), secretHash)) return respond(res, 401, { error: 'Unauthorized' });
     const match = /^\/seats\/(seat-(?:[1-9]|[1-9][0-9]|1[0-9][0-9]|200))$/.exec(req.url);
     const seat = match?.[1];
     if (!handle.seats.includes(seat)) return respond(res, 404, { error: 'Unknown seat endpoint' });
@@ -111,7 +72,7 @@ async function request(handle, secretHash, req, res) {
   }
 }
 
-export async function bootRenderers({ evidence, video: input, seats, settings = {}, signal, onProgress = () => {}, controlHost = '0.0.0.0', controlPort = 9001, tunnelPort = 9000, secretFile = process.env.MINDUSTRY_TUNNEL_SECRET_FILE ?? '/run/mindustry-control/tunnel-secret', launchTunnel = defaultTunnel, onListening = () => {} }) {
+export async function bootRenderers({ evidence, video: input, seats, settings = {}, signal, onProgress = () => {}, controlHost = '0.0.0.0', controlPort = 9001, onListening = () => {} }) {
   signal?.throwIfAborted();
   const names = seats.map(seat => typeof seat === 'string' ? seat : seat.id);
   const expected = Array.from({ length: names.length }, (_, i) => `seat-${i + 1}`);
@@ -121,14 +82,9 @@ export async function bootRenderers({ evidence, video: input, seats, settings = 
   const cameras = Array.isArray(video.seats) ? video.seats : expected;
   const handle = { evidence, logDir: join(evidence, 'seat-renderers'), settings, video, seats: expected, cameras, signal, phase: 'connect', reports: new Map(), elapsedSec: null, stopped: false };
   mkdirSync(handle.logDir, { recursive: true });
-  const secret = readFileSync(secretFile, 'utf8').trim();
-  if (!/^[a-zA-Z0-9_-]{32,}$/.test(secret)) throw new Error('Invalid native game tunnel secret');
   handle.abortListener = () => { void stopRenderers(handle); };
   try {
-    handle.tunnel = launchTunnel({ logDir: handle.logDir, tunnelPort, secret });
-    handle.tunnel.on('error', error => { handle.tunnelError = error; note(handle, { error: 'Game tunnel process failed', detail: error.message }); });
-
-    handle.server = createServer({ requestTimeout: 0, headersTimeout: 0 }, (req, res) => { void request(handle, hash(secret), req, res); });
+    handle.server = createServer({ requestTimeout: 0, headersTimeout: 0 }, (req, res) => { void request(handle, req, res); });
     await new Promise((resolve, reject) => {
       handle.server.once('error', reject);
       handle.server.listen(controlPort, controlHost, () => { handle.server.removeListener('error', reject); resolve(); });
@@ -136,7 +92,6 @@ export async function bootRenderers({ evidence, video: input, seats, settings = 
     signal?.throwIfAborted();
     signal?.addEventListener('abort', handle.abortListener, { once: true });
     save(handle);
-    await tunnelListening(handle, tunnelPort);
     onListening(handle.server.address());
     onProgress(`Waiting for ${cameras.length} of ${names.length} seats' native game clients`);
     await waitFor(handle, 'ready');
@@ -191,12 +146,6 @@ export async function stopRenderers(handle) {
     handle.signal?.removeEventListener('abort', handle.abortListener);
     if (handle.server) {
       await new Promise(resolve => { handle.server.close(resolve); handle.server.closeAllConnections(); });
-    }
-    const child = handle.tunnel;
-
-    if (child && !handle.tunnelError && child.exitCode === null && child.signalCode === null) {
-      child.kill('SIGTERM');
-      while (child.exitCode === null && child.signalCode === null) await sleep(50);
     }
   })();
   return handle.closePromise;

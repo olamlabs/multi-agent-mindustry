@@ -14,7 +14,7 @@ export function objectiveFromInstruction(text) {
     throw new Error('instruction.md must contain exactly one nonempty ## Objective section');
   return sections[0].slice('Objective\n'.length).trim();
 }
-const brief = () => objectiveFromInstruction(readFileSync(new URL('../../instruction.md', import.meta.url), 'utf8'));
+const brief = () => objectiveFromInstruction(readFileSync(new URL('./instruction.md', import.meta.url), 'utf8'));
 
 const UNTIMED = 'No game has a time limit. The only thing that ends a game in your favor is your team winning against the others.';
 

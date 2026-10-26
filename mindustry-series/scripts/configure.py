@@ -28,21 +28,21 @@ def generate(root, config):
     sim_settings = config['settings'] if recording else {**config['settings'], 'video': {**config['settings'].get('video', {}), 'seats': []}}
     services = {
         'main': {
-            'build': {'context': '..', 'dockerfile': 'environment/Dockerfile', 'target': 'simulation'},
+            'build': {'context': '.', 'target': 'simulation'},
             'networks': ['control'], 'platform': 'linux/amd64',
             'command': ['/bin/sh', '-c', 'PATH=/usr/local/bin:/usr/bin:/bin exec node /app/sim/seats.mjs --seat-clients'],
             'healthcheck': {
                 'test': ['CMD', '/bin/sh', '-c', 'PATH=/usr/local/bin:/usr/bin:/bin node -e "fetch(\'http://127.0.0.1:8080/health\').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"'],
                 'interval': '5s', 'timeout': '10s', 'retries': 3, 'start_period': '1h'},
             'environment': {'MINDUSTRY_SEATS': json.dumps(seats), 'MINDUSTRY_SIM_SETTINGS': json.dumps(sim_settings)},
-            'volumes': ['camera-control:/run/mindustry-control'] + [f'{s}-token:/run/seat-tokens/{s}' for s in seats],
+            'volumes': [f'{s}-token:/run/seat-tokens/{s}' for s in seats],
         }
     }
     services['api'] = {'build': './gateway', 'networks': ['agents', 'control'],
                        'depends_on': {'main': {'condition': 'service_healthy'}}}
     lines = [MARK]
     template = (root/'instruction.md').read_text()
-    outputs = {}
+    outputs = {'environment/sim/instruction.md': template}
     for seat in seats:
         services[seat] = {
             'build': './seat-box', 'networks': ['agents'], 'init': True, 'cpus': 2, 'mem_limit': '2048m',
@@ -54,15 +54,13 @@ def generate(root, config):
         if seat not in cameras:
             continue
         services[f'{seat}-game'] = {
-            'build': {'context': '..', 'dockerfile': 'environment/Dockerfile', 'target': 'runtime'},
+            'build': {'context': '.', 'target': 'runtime'},
             'networks': ['control'], 'platform': 'linux/amd64', 'command': ['node', '/opt/mindustry/environment/seat-client/client.mjs'],
-            'volumes': ['camera-control:/run/mindustry-control:ro'],
             'init': True, 'stop_grace_period': '90s', 'cpus': 2, 'mem_limit': '2048m',
             'depends_on': {'main': {'condition': 'service_healthy'}},
             'environment': {
                 'MINDUSTRY_SEAT': seat,
-                'MINDUSTRY_SIM_URLS': json.dumps({'9000': 'http://main:9000', '9001': 'http://main:9001'}),
-                'MINDUSTRY_SIM_HEADERS': '{}',
+                'MINDUSTRY_CONTROL_URL': 'http://main:9001',
                 'MINDUSTRY_RECORDINGS_DIR': f'/recordings/{seat}',
                 'MINDUSTRY_SEAT_RUN_DIR': f'/tmp/mindustry-seat/{seat}',
             },
@@ -74,7 +72,7 @@ def generate(root, config):
     if text.count(MARK) != 1:
         raise ValueError('task.toml is missing its generated seat marker')
 
-    outputs['environment/docker-compose.yaml'] = json.dumps({'services': services, 'networks': {'agents': {}, 'control': {'internal': True}}, 'volumes': {'camera-control': {}, **{f'{s}-token': {} for s in seats}}}, indent=2)+'\n'
+    outputs['environment/docker-compose.yaml'] = json.dumps({'services': services, 'networks': {'agents': {}, 'control': {'internal': True}}, 'volumes': {f'{s}-token': {} for s in seats}}, indent=2)+'\n'
 
     settings = config['settings']
     seconds = settings.get('time_limit_sec', 600)

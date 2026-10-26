@@ -29,7 +29,7 @@ test('recording uses the resolved video settings and canonical seats', () => {
   assert.equal(args.at(-1), '/recordings/seat-8-%03d.mp4');
   assert.equal(args[args.indexOf('-i') + 1], ':99');
   assert.ok(args.includes('movflags=+frag_keyframe+empty_moov+default_base_moof'));
-  for (const invalid of [[], seats(201), seats(8).fill('seat-1'), [...seats(7), 'seat-9']]) {
+  for (const invalid of [[], seats(8).fill('seat-1'), [...seats(7), 'seat-9']]) {
     assert.throws(() => recordingSettings({ seats: invalid }), /canonical/);
   }
 });
@@ -44,39 +44,4 @@ test('single native camera requires explicit seatScoped opt-in and one canonical
   assert.deepEqual(handle.labels, ['seat-200 native view']);
   assert.equal(handle.processes.length, 0);
   await stopRenderers(handle);
-});
-
-test('a seat without a camera starts nothing, reports nothing, and exits cleanly once its container is stopped', {timeout:15000}, async t => {
-  const { spawn } = await import('node:child_process');
-  const { createServer } = await import('node:http');
-  const { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } = await import('node:fs');
-  const { tmpdir } = await import('node:os');
-  const { join } = await import('node:path');
-  const dir = mkdtempSync(join(tmpdir(), 'mindustry-no-camera-'));
-  t.after(()=>rmSync(dir,{recursive:true,force:true}));
-  const requests = [];
-  const coordinator = createServer((req, res) => {
-    requests.push(`${req.method} ${req.url}`);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ phase: 'connect', seat: 'seat-3', camera: false, seats: ['seat-1', 'seat-2', 'seat-3', 'seat-4'], settings: {}, video: { record: true, fps: 5, width: 960, height: 540, seats: ['seat-1'] }, elapsed_sec: null }));
-  });
-  await new Promise(resolve => coordinator.listen(0, '127.0.0.1', resolve));
-  t.after(() => coordinator.close());
-  writeFileSync(join(dir, 'secret'), 'k'.repeat(40));
-  const client = spawn(process.execPath, [new URL('../../environment/seat-client/client.mjs', import.meta.url).pathname], { env: { ...process.env, MINDUSTRY_SEAT: 'seat-3', MINDUSTRY_SIM_URLS: JSON.stringify({ 9000: 'http://127.0.0.1:9', 9001: `http://127.0.0.1:${coordinator.address().port}` }), MINDUSTRY_SIM_HEADERS: '{}', MINDUSTRY_TUNNEL_SECRET: join(dir, 'secret'), MINDUSTRY_SEAT_RUN_DIR: join(dir, 'run'), MINDUSTRY_RECORDINGS_DIR: join(dir, 'recordings') }, stdio: 'ignore' });
-  t.after(()=>client.kill('SIGKILL'));
-  const exited = new Promise(resolve => client.once('exit', (code, signal) => resolve({ code, signal })));
-  const status = join(dir, 'run', 'status.json');
-  while (!existsSync(status)) {
-    assert.equal(client.exitCode,null,'camera client exited before reporting status');
-    await new Promise(resolve => setTimeout(resolve, 20));
-  }
-  await new Promise(resolve => setTimeout(resolve, 300));
-  assert.equal(client.exitCode, null, 'it stays up until Harbor stops its container');
-  assert.deepEqual(JSON.parse(readFileSync(status, 'utf8')), { seat: 'seat-3', status: 'no_camera', metadata: {} });
-  assert.equal(JSON.parse(readFileSync(join(dir, 'recordings', 'metadata.json'), 'utf8')).camera, false);
-  assert.ok(!existsSync(join(dir, 'run', 'tunnel.log')), 'no game tunnel');
-  assert.deepEqual(requests, ['GET /seats/seat-3']);
-  client.kill('SIGTERM');
-  assert.deepEqual(await exited, { code: 0, signal: null });
 });

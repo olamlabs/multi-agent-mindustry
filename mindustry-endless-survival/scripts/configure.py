@@ -111,26 +111,26 @@ def configure(root=HERE, config=None):
         settings={**settings,'video':{**settings.get('video',{}),'seats':[]}}
         world={**settings,'wave_schedule_briefing':config['wave_schedule_briefing']}
         cameras=[]
-    build=lambda target:{'context':'..','dockerfile':'environment/Dockerfile','target':target}
+    build=lambda target:{'context':'.','target':target}
     services={'main':{'build':build('simulation'),'platform':'linux/amd64','networks':['control'],
         'command':['/bin/sh','-c','PATH=/usr/local/bin:/usr/bin:/bin exec node /app/task-runtime/seats.mjs --seat-clients'],
         'environment':{'MINDUSTRY_SEATS':json.dumps(seats),'MINDUSTRY_SIM_SETTINGS':json.dumps(world)},
-        'volumes':['camera-control:/run/mindustry-control']+[f'{seat}-token:/run/seat-tokens/{seat}' for seat in seats],
+        'volumes':[f'{seat}-token:/run/seat-tokens/{seat}' for seat in seats],
         'healthcheck':{'test':['CMD','/bin/sh','-c',"PATH=/usr/local/bin:/usr/bin:/bin node -e \"fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))\""],
                       'interval':'5s','timeout':'10s','retries':3,'start_period':'1h'}},
-        'api':{'build':{'context':'..','dockerfile':'environment/gateway/Dockerfile'},'networks':['agents','control'],'depends_on':{'main':{'condition':'service_healthy'}}}}
+        'api':{'build':'./gateway','networks':['agents','control'],'depends_on':{'main':{'condition':'service_healthy'}}}}
     for seat in seats:
-        services[seat]={'build':{'context':'..','dockerfile':'environment/seat-box/Dockerfile'},'networks':['agents'],'init':True,'cpus':2,'mem_limit':'2048m',
+        services[seat]={'build':'./seat-box','networks':['agents'],'init':True,'cpus':2,'mem_limit':'2048m',
             'depends_on':{'main':{'condition':'service_healthy'}},
             'environment':{'MINDUSTRY_SEAT':seat,'MINDUSTRY_SIM_URL':'http://api:8080'},'volumes':[f'{seat}-token:/run/mindustry:ro']}
         if seat not in cameras: continue
         services[seat+'-game']={'build':build('runtime'),'platform':'linux/amd64','networks':['control'],'init':True,
             'cpus':2,'mem_limit':'2048m','stop_grace_period':'90s','command':['node','/opt/mindustry/environment/seat-client/client.mjs'],
-            'depends_on':{'main':{'condition':'service_healthy'}},'volumes':['camera-control:/run/mindustry-control:ro'],
-            'environment':{'MINDUSTRY_SEAT':seat,'MINDUSTRY_SIM_URLS':json.dumps({'9000':'http://main:9000','9001':'http://main:9001'}),
-                'MINDUSTRY_SIM_HEADERS':'{}','MINDUSTRY_RECORDINGS_DIR':f'/recordings/{seat}','MINDUSTRY_SEAT_RUN_DIR':f'/tmp/mindustry-seat/{seat}'}}
+            'depends_on':{'main':{'condition':'service_healthy'}},
+            'environment':{'MINDUSTRY_SEAT':seat,'MINDUSTRY_CONTROL_URL':'http://main:9001',
+                'MINDUSTRY_RECORDINGS_DIR':f'/recordings/{seat}','MINDUSTRY_SEAT_RUN_DIR':f'/tmp/mindustry-seat/{seat}'}}
     compose={'services':services,'networks':{'agents':{},'control':{}},
-             'volumes':{'camera-control':{},**{seat+'-token':{} for seat in seats}}}
+             'volumes':{seat+'-token':{} for seat in seats}}
     task=render_seats_task(TASK_NAME,config['version'],seats,cameras,config['wave_schedule_briefing'],{'cpus':8,'memory_mb':8192}).decode()
 
     task=task.replace('# main:', '[[verifier.collect]]\nservice = "main"\ncommand = "PATH=/usr/local/bin:/usr/bin:/bin node /app/task-runtime/collect.mjs"\ntimeout_sec = 63000\n\n# main:')

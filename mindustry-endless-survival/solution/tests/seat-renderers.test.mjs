@@ -1,43 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EventEmitter } from 'node:events';
 import { request as httpRequest } from 'node:http';
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
-import { createServer } from 'node:net';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { bootRenderers, startVideo, stopVideo, stopRenderers } from '../../environment/sim/seat-renderers.mjs';
 
 const seats = Array.from({ length: 8 }, (_, i) => `seat-${i + 1}`);
-const fixtureCredential = Array.from({ length: 64 }, (_, i) => (i % 16).toString(16)).join('');
 
-async function tunnelListener(t, port = 0) {
-  const server = createServer(socket => socket.destroy());
-  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
-  t.after(() => server.close());
-  return server;
-}
-
-async function freePort(t) {
-  const server = await tunnelListener(t);
-  const { port } = server.address();
-  await new Promise(resolve => server.close(resolve));
-  return port;
-}
-function fakeTunnel() {
-  const child = new EventEmitter();
-  Object.assign(child, { exitCode: null, signalCode: null, kill(signal) { this.signalCode = signal; this.emit('exit', null, signal); return true; } });
-  return child;
-}
 async function fixture(t, { record = true, signal, settings = {}, video = {}, seats = Array.from({ length: 8 }, (_, i) => `seat-${i + 1}`) } = {}) {
   const evidence = mkdtempSync(join(tmpdir(), 'mindustry-seat-renderers-'));
-  const secretFile = join(evidence, 'secret');
-  writeFileSync(secretFile, fixtureCredential);
   let resolveListen;
   const listening = new Promise(resolve => { resolveListen = resolve; });
-  const tunnel = fakeTunnel();
-  const tunnelPort = (await tunnelListener(t)).address().port;
-  const boot = bootRenderers({ evidence, seats, settings: { game_mode: 'survival', time_limit_sec: null, ...settings }, video: { record, ...video }, secretFile, controlHost: '127.0.0.1', controlPort: 0, tunnelPort, launchTunnel: () => tunnel, onListening: resolveListen, signal });
+  const boot = bootRenderers({ evidence, seats, settings: { game_mode: 'survival', time_limit_sec: null, ...settings }, video: { record, ...video }, controlHost: '127.0.0.1', controlPort: 0, onListening: resolveListen, signal });
 
   boot.catch(() => {});
   const address = await listening;
@@ -45,9 +20,9 @@ async function fixture(t, { record = true, signal, settings = {}, video = {}, se
   t.after(async () => { await stopRenderers(handle); rmSync(evidence, { recursive: true, force: true }); });
   const url = `http://127.0.0.1:${address.port}`;
 
-  function request(seat, body, key = fixtureCredential) {
+  function request(seat, body) {
     return new Promise((resolve, reject) => {
-      const req = httpRequest(`${url}/seats/${seat}`, { method: body ? 'POST' : 'GET', agent: false, headers: { 'X-Mindustry-Key': key, 'Content-Type': 'application/json' } }, res => {
+      const req = httpRequest(`${url}/seats/${seat}`, { method: body ? 'POST' : 'GET', agent: false, headers: { 'Content-Type': 'application/json' } }, res => {
         let text = '';
         res.setEncoding('utf8');
         res.on('data', chunk => { text += chunk; });
@@ -63,7 +38,7 @@ async function fixture(t, { record = true, signal, settings = {}, video = {}, se
     handle = await boot;
     return handle;
   }
-  return { evidence, request, ready, boot, tunnel, url };
+  return { evidence, request, ready, boot, url };
 }
 function stopped(seat) { return { status: 'stopped', metadata: { complete: true, first_frame: true, frames: 45, files: [{ name: `${seat}-000.mp4`, bytes: 12345, frames: 45, duration_sec: 9 }] } }; }
 
@@ -88,12 +63,10 @@ test('eight native seats synchronize first frames and preserve distributed artif
   assert.equal(result.per_seat['seat-8'].metadata.files[0].name, 'seat-8-000.mp4');
   assert.deepEqual(JSON.parse(readFileSync(join(f.evidence, 'video/metadata.json'))), result);
   assert.equal(await stopVideo(handle), result);
-  assert.doesNotMatch(readFileSync(join(f.evidence, 'seat-renderers/events.jsonl'), 'utf8'), new RegExp(fixtureCredential));
 });
 
-test('coordinator rejects bad authentication, foreign seats and premature or unverified acknowledgments, whatever their size', async t => {
+test('coordinator rejects foreign seats and premature or unverified acknowledgments, whatever their size', async t => {
   const f = await fixture(t);
-  assert.equal((await f.request('seat-1', null, 'wrong')).status, 401);
   assert.equal((await f.request('seat-9')).status, 404);
   assert.equal((await f.request('seat-1', { status: 'recording', metadata: { first_frame: true } })).status, 409);
 
@@ -222,44 +195,14 @@ test('missing clients fail nothing however long they take; the lobby abort ends 
   t.mock.timers.tick(100);
   await assert.rejects(f.boot, /lobby_sec/);
   t.mock.timers.reset();
-  assert.equal(f.tunnel.signalCode, 'SIGTERM');
   await assert.rejects(fetch(`${f.url}/seats/seat-1`));
 });
 
-test('abort during setup closes the listener and tunnel', async t => {
+test('abort during setup closes the listener', async t => {
   const controller = new AbortController();
   const f = await fixture(t, { signal: controller.signal });
   controller.abort(new Error('Preparation cancelled'));
   await assert.rejects(f.boot, /Preparation cancelled/);
-  assert.equal(f.tunnel.signalCode, 'SIGTERM');
-  await assert.rejects(fetch(`${f.url}/seats/seat-1`));
-});
-
-test('the coordinator is listening only once the game tunnel accepts connections too', async t => {
-  const evidence = mkdtempSync(join(tmpdir(), 'mindustry-seat-renderers-'));
-  t.after(() => rmSync(evidence, { recursive: true, force: true }));
-  const secretFile = join(evidence, 'secret');
-  writeFileSync(secretFile, fixtureCredential);
-  const port = await freePort(t);
-  let listening = false;
-  const abort = new AbortController();
-  const boot = bootRenderers({ evidence, seats: ['seat-1'], settings: { game_mode: 'survival', time_limit_sec: null }, video: { record: false }, secretFile, controlHost: '127.0.0.1', controlPort: 0, tunnelPort: port, launchTunnel: () => fakeTunnel(), onListening: () => { listening = true; }, signal: abort.signal });
-  boot.catch(() => {});
-  t.after(() => abort.abort());
-  await new Promise(resolve => setTimeout(resolve, 400));
-  assert.equal(listening, false, 'not listening while the tunnel port refuses connections');
-  await tunnelListener(t, port);
-  while (!listening) await new Promise(resolve => setTimeout(resolve, 20));
-  const exited = fakeTunnel();
-  const failing = bootRenderers({ evidence, seats: ['seat-1'], settings: { game_mode: 'survival', time_limit_sec: null }, video: { record: false }, secretFile, controlHost: '127.0.0.1', controlPort: 0, tunnelPort: await freePort(t), launchTunnel: () => exited });
-  exited.exitCode = 1;
-  await assert.rejects(failing, /Game tunnel exited \(1\)/);
-});
-
-test('tunnel exit fails preparation even when all clients previously reported ready', async t => {
-  const f = await fixture(t);
-  f.tunnel.exitCode = 1;
-  await assert.rejects(f.boot, /Game tunnel exited \(1\)/);
   await assert.rejects(fetch(`${f.url}/seats/seat-1`));
 });
 
