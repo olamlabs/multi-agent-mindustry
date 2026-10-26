@@ -39,7 +39,7 @@ Live cameras are off by default. Both tasks always record a game log: the server
 
 ## Validation
 
-Each task’s `solution/` contains regression and integration checks; `tests/` contains the verifier entrypoint. CI checks that the committed task files match `config.json`, runs the regression suites, builds each image from public dependencies, runs the real game engine through the API, recording and replay checks, and runs full Harbor trials with scripted agents and no model calls. Passing these checks does not establish model performance or maximum-seat capacity.
+Each task’s `solution/` contains regression and integration checks; `tests/` contains the verifier entrypoint. CI checks that the committed task files match `config.json`, runs the regression suites, builds each image from public dependencies, and runs the real game engine through the API, recording and replay checks. Passing these checks does not establish model performance or maximum-seat capacity.
 
 ## License and credits
 

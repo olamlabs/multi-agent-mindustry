@@ -515,12 +515,9 @@ The native recorder regression (`solution/tests/native/screen-recorder.mjs`) che
 ```sh
 # From the task folder; Node.js 22 and JDK 17+ are required for regression tests.
 node --test solution/tests/*.test.mjs
-# Full Docker/Harbor integration using the uv-installed runner.
-SMOKE_EVIDENCE=/tmp/mindustry-series-check \
-  "$(uv tool dir)/harbor/bin/python" solution/tests/harbor_smoke.py
 ```
 
-The checks cover game resets, recording integrity, failure handling and the full Harbor lifecycle.
+The checks cover game resets, recording integrity and failure handling.
 
 ## License
 

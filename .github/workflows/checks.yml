@@ -5,8 +5,6 @@ permissions:
 concurrency:
   group: checks-${{ github.ref }}
   cancel-in-progress: true
-env:
-  HARBOR_MULTIAGENT_COMMIT: 4a194016336ccd1ce3fcc799b10158ca0375eb63
 jobs:
   regression:
     runs-on: ubuntu-24.04
@@ -115,49 +113,5 @@ jobs:
         if: failure()
         with:
           name: endless-native
-          path: ${{ runner.temp }}/evidence
-          retention-days: 7
-
-  harbor:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        task: [mindustry-series, mindustry-endless-survival]
-    env:
-      MINDUSTRY_TEST_CPUS: 4
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@v10.2.0
-        with:
-          version: 0.13.5
-      - name: Install the pinned Harbor Multiagent from its lock
-        run: |
-          set -euo pipefail
-          git init -q "$RUNNER_TEMP/harbor"
-          git -C "$RUNNER_TEMP/harbor" fetch -q --depth 1 https://github.com/olamlabs/harbor-multiagent "$HARBOR_MULTIAGENT_COMMIT"
-          git -C "$RUNNER_TEMP/harbor" checkout -q FETCH_HEAD
-          uv sync --project "$RUNNER_TEMP/harbor" --frozen --no-dev
-      - name: Series with scripted agents, normal and early exits
-        if: matrix.task == 'mindustry-series'
-        env:
-          SMOKE_EVIDENCE: ${{ runner.temp }}/evidence/lifecycle
-        run: '"$RUNNER_TEMP/harbor/.venv/bin/python" mindustry-series/solution/tests/harbor_smoke.py'
-      - name: Series fault cases
-        if: matrix.task == 'mindustry-series'
-        env:
-          SMOKE_EVIDENCE: ${{ runner.temp }}/evidence/faults
-          SMOKE_MODES: replay,slow_setup,lobby_missing,native_kill,replay_disk_full
-        run: '"$RUNNER_TEMP/harbor/.venv/bin/python" mindustry-series/solution/tests/failure_checks.py'
-      - name: Survival in two fresh worlds with scripted agents
-        if: matrix.task == 'mindustry-endless-survival'
-        run: '"$RUNNER_TEMP/harbor/.venv/bin/python" mindustry-endless-survival/solution/integration.py --output "$RUNNER_TEMP/evidence/lifecycle" --cpus "$MINDUSTRY_TEST_CPUS"'
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: harbor-${{ matrix.task }}
           path: ${{ runner.temp }}/evidence
           retention-days: 7

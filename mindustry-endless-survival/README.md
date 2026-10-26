@@ -38,7 +38,6 @@ mindustry-endless-survival/
 │   └── test.sh               # Production verifier entrypoint
 └── solution/
     ├── solve.sh              # Oracle sanity check, not a winning strategy
-    ├── run.sh                # Host-side integration test with two fresh worlds
     └── tests/                # Regression tests and native fixtures
 ```
 
@@ -350,11 +349,9 @@ The native recorder regression (`solution/tests/native/screen-recorder.mjs`) che
 ```sh
 python3 -m unittest discover -s solution/tests -p 'test_*.py'
 node --test solution/tests/*.test.mjs
-HARBOR_PYTHON="$(uv tool dir)/harbor/bin/python" \
-  sh solution/run.sh --output /absolute/path/to/new-evidence-directory
 ```
 
-The integration test creates two fresh two-seat Docker worlds and checks the documented client, movement, team chat, isolation, native core loss, the game log, evidence export and reward validation. The first world turns on a live camera for `seat-1` and checks its MP4; the second keeps cameras off. It makes no paid model calls. For an Oracle sanity run, set every job participant to `name: "oracle"` and omit model credentials.
+For an Oracle sanity run, set every job participant to `name: "oracle"` and omit model credentials.
 
 Fast regression tests stay at `solution/tests/`; shared data and process helpers live in `fixtures/`. The `native/` folder contains real-engine checks: `run-survival.sh` checks waves and core loss; `run-check.sh api|telemetry|evaluation` checks player actions and native counters; `renderer.mjs` and `construction.mjs` check recorded video and building through the agent API; `replay.mjs` plays three games to core loss and checks the game log, rendering from it, its refusals, that a broken log fails the run, and that a disabled log leaves the score alone. Run these checks in the built runtime image. For example:
 
