@@ -365,7 +365,7 @@ docker run --rm --platform linux/amd64 -v "$PWD:/task:ro" -v "$PWD/runs:/evidenc
 
 ## Limitations
 
-This task uses Docker Compose; other sandbox backends need separate validation. Package and base-image updates mean builds are not fully byte-reproducible.
+Tested with local Docker and on Daytona; the repository README has the Daytona settings. Package and base-image updates mean builds are not fully byte-reproducible.
 
 ## License
 
