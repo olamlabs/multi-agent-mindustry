@@ -1,4 +1,4 @@
-package harbor;
+package agentbridge;
 
 import arc.util.Time;
 import arc.util.serialization.JsonValue;
@@ -15,7 +15,7 @@ import mindustry.world.blocks.distribution.*;
 import mindustry.world.blocks.production.*;
 import java.util.*;
 
-public class EvaluationSmoke extends HarborBridge {
+public class EvaluationSmoke extends AgentBridge {
 
     static final class Inert implements mindustry.entities.units.UnitController {
         Unit unit;

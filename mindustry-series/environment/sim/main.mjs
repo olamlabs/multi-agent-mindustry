@@ -24,12 +24,12 @@ function launch(name,cmd,args,options={}) {
 async function exited(proc,name) {
   await new Promise((resolve,reject)=>{proc.once('exit',code=>code===0?resolve():reject(new Error(`${name} exited ${code}`)));proc.once('error',reject);});
 }
-const replayEnvironment=replay=>replay.record?{HARBOR_REPLAY_DIR:join(evidence,'replay'),HARBOR_REPLAY_SEGMENT_SEC:String(replay.segment_sec),HARBOR_REPLAY_KEYFRAME_SEC:String(replay.keyframe_sec)}:{};
+const replayEnvironment=replay=>replay.record?{MINDUSTRY_REPLAY_DIR:join(evidence,'replay'),MINDUSTRY_REPLAY_SEGMENT_SEC:String(replay.segment_sec),MINDUSTRY_REPLAY_KEYFRAME_SEC:String(replay.keyframe_sec)}:{};
 const engine={
   async boot(settings) {
     mkdirSync(join(runDir,'config/mods'),{recursive:true}); mkdirSync(join(runDir,'classes'),{recursive:true});
     const jar=process.env.MINDUSTRY_SERVER_JAR??'/opt/mindustry/server.jar';
-    await exited(launch('plugin-compile','sh',[join(taskDir,'plugin/build.sh'),jar,join(runDir,'config/mods/harbor-bridge.jar')]),'plugin compile');
+    await exited(launch('plugin-compile','sh',[join(taskDir,'plugin/build.sh'),jar,join(runDir,'config/mods/agent-bridge.jar')]),'plugin compile');
 
     this.proc=launch('mindustry-server','java',['-Xms256m','-XX:MaxRAMPercentage=75',`-Xlog:gc:file=${join(evidence,'engine-gc.log')}:time,uptime`,'-jar',jar],{env:{...process.env,MINDUSTRY_EVIDENCE_DIR:join(evidence,'engine'),...replayEnvironment(settings.replay)}});
     this.server=watchServer(this.proc,join(evidence,'mindustry-server.log'));

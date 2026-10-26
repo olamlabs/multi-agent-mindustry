@@ -18,7 +18,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const validity=join(dirname(out),'validity.json');
   rmSync(validity,{force:true});
   try {
-    const { reward, series } = grade({...readGame(dir), expected: process.env.HARBOR_SEATS && process.env.HARBOR_SIM_SETTINGS ? {seats:JSON.parse(process.env.HARBOR_SEATS),settings:JSON.parse(process.env.HARBOR_SIM_SETTINGS)} : null});
+    const { reward, series } = grade({...readGame(dir), expected: process.env.MINDUSTRY_SEATS && process.env.MINDUSTRY_SIM_SETTINGS ? {seats:JSON.parse(process.env.MINDUSTRY_SEATS),settings:JSON.parse(process.env.MINDUSTRY_SIM_SETTINGS)} : null});
     writeFileSync(summary+'.tmp', `${JSON.stringify(series, null, 2)}\n`);
     renameSync(summary+'.tmp',summary);
     writeFileSync(out+'.tmp', `${JSON.stringify(reward, null, 2)}\n`);

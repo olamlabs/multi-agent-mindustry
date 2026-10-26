@@ -102,7 +102,7 @@ test('entry reader cannot bypass duplicate-key or bounded-size receipt validatio
 });
 
 test('failed verifier rerun removes stale rewards before input parsing or grading',()=>{
-  const dir=mkdtempSync(join(tmpdir(),'survival-regrade-'));
+  const dir=mkdtempSync(join(tmpdir(),'survival-rerun-'));
   const input=nativeFixture(),reward=join(dir,'verifier/reward.json'),outcome=join(dir,'survival-outcome.json');
   const run=()=>spawnSync(process.execPath,[fileURLToPath(new URL('../../environment/sim/verify.mjs',import.meta.url)),dir,reward],{encoding:'utf8',timeout:5000});
   try {

@@ -59,10 +59,14 @@ def check_verifier(task, logs, output, expected):
     (output/'verifier-probes.log').write_text(first.stdout + second.stdout + invalid.stdout + invalid.stderr)
     return ['repeatable_saved_evidence', 'missing_native_evidence_rejected', 'stale_reward_removed']
 
-async def run_world(out, number, cpus):
+async def run_world(out, number, cpus, camera):
     folder = out/f'world-{number}';folder.mkdir()
     task = folder/'task'
     shutil.copytree(SOURCE, task, ignore=shutil.ignore_patterns('__pycache__', '*.pyc', 'runs', 'instructions'))
+    if camera:
+        config = json.loads((task/'config.json').read_text())
+        config['settings']['video'].update(record=True, seats=['seat-1'])
+        (task/'config.json').write_text(json.dumps(config, indent=2)+'\n')
     subprocess.run([sys.executable, str(task/'scripts/configure.py'), '--seats', '2'], check=True)
     name = f'endless-integration-{os.getpid()}-{number}'
     trial = await Trial.create(TrialConfig(
@@ -71,7 +75,7 @@ async def run_world(out, number, cpus):
         participants=[{'seat': f'seat-{i}', 'import_path': 'integration:SmokeAgent',
                        'env': {'INTEGRATION_WORLD_ID': name}} for i in [1, 2]],
     ))
-    print(f'Starting {name}: two real seat sandboxes and one native world', flush=True)
+    print(f'Starting {name}: two real seat sandboxes and one native world, {"a live camera on seat-1" if camera else "no live cameras"}', flush=True)
     result = await trial.run()
     assert result.exception_info is None, result.exception_info
     assert len(result.seat_results) == 2 and all(s.exception_info is None for s in result.seat_results), result.seat_results
@@ -87,12 +91,24 @@ async def run_world(out, number, cpus):
     assert outcome['status'] == 'valid' and outcome['score_minutes'] == rewards['reward'], outcome
     artifacts = json.loads((path/'artifacts/manifest.json').read_text())
     assert any(a['source'] == '/logs/sim' and a['status'] == 'ok' for a in artifacts), artifacts
+    replay = json.loads((logs/'replay/stats.json').read_text())
+    assert replay['complete'] and replay['closed'] and replay['worlds'] == 1, replay
+    receipt = json.loads((logs/'replay/manifest.json').read_text())
+    assert receipt['closed'] and len(receipt['segments']) == replay['segments'], receipt
+    video = next(row for row in map(json.loads, (logs/'log.jsonl').read_text().splitlines()) if row['type'] == 'video')
+    if camera:
+        assert video['complete'] and video['first_frame'] and video['cameras'] == ['seat-1'], video
+        assert list((path/'artifacts/recordings/seat-1').glob('seat-1-*.mp4')), 'The seat-1 camera wrote no MP4'
+        assert not (path/'artifacts/recordings/seat-2').exists(), 'seat-2 has no camera'
+    else:
+        assert video['cameras'] == [], video
+        assert not (path/'artifacts/recordings').exists(), 'Cameras off still wrote recordings'
     probes = [json.loads((path/f'seats/seat-{i}/agent/integration.json').read_text()) for i in [1, 2]]
     assert all(p['world'] == name for p in probes)
     verification = check_verifier(task, logs, folder, rewards['reward'])
     summary = {'trial': name, 'reward_minutes': rewards['reward'], 'seat_probes': probes,
                'checks': ['fresh_world', 'core_loss', 'terminal_export', 'valid_shared_reward',
-                          'survival_only_reward_file', *verification]}
+                          'survival_only_reward_file', 'replay_recorded', 'seat_1_camera' if camera else 'cameras_off', *verification]}
     (folder/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
     print(f'PASS {name}: native core loss, exported evidence, reward {rewards["reward"]}', flush=True)
     return summary
@@ -107,11 +123,11 @@ async def main():
         out.mkdir(parents=True, exist_ok=False)
     print(f'Evidence: {out}', flush=True)
     ledger = {'mode': 'pure_benchmark_integration', 'status': 'RUNNING', 'worlds': [],
-              'limitations': ['No paid model calls', 'Not a winning strategy or difficulty calibration',
+              'limitations': ['No paid model calls', 'Not a winning strategy or a difficulty measurement',
                               'Two seats per world; not a 20-seat capacity test', 'Local Docker only; other sandbox backends not tested']}
     try:
-        for number in [1, 2]:
-            ledger['worlds'].append(await run_world(out, number, args.cpus))
+        for number, camera in [(1, True), (2, False)]:
+            ledger['worlds'].append(await run_world(out, number, args.cpus, camera))
         tokens = [p['token_hash'] for world in ledger['worlds'] for p in world['seat_probes']]
         assert len(set(tokens)) == 4, 'Seat credentials reused across seats or world copies'
         ledger['status'] = 'PASS'

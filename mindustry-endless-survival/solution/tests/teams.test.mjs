@@ -15,8 +15,8 @@ test('one survival team supports exactly 1 through 20 canonical seats',()=>{
 test('configured roster and Compose agree on the single endless-survival team',()=>{
   const config=JSON.parse(readFileSync(new URL('../../config.json',import.meta.url)));
   const compose=JSON.parse(readFileSync(new URL('../../environment/docker-compose.yaml',import.meta.url)));
-  const roster=JSON.parse(compose.services.main.environment.HARBOR_SEATS);
-  const settings=JSON.parse(compose.services.main.environment.HARBOR_SIM_SETTINGS);
+  const roster=JSON.parse(compose.services.main.environment.MINDUSTRY_SEATS);
+  const settings=JSON.parse(compose.services.main.environment.MINDUSTRY_SIM_SETTINGS);
   assert.equal(roster.length,config.seats);
   assert.equal(settings.time_limit_sec,null);
   assert.deepEqual(resolveTeams(validateSettings(settings),roster).team_sizes,[roster.length]);
@@ -31,13 +31,14 @@ test('camera selection preserves roster order and rejects absent seats',()=>{
   for(const bad of [-1,21,1.5,'some',null,['seat-1','seat-1'],['bob'],[7]])assert.throws(()=>validateSettings({video:{seats:bad}}));
 });
 
-test('release configuration records every seat as the roster changes',()=>{
+test('live cameras are off by default; turned on, they record every seat as the roster changes',()=>{
   const config=JSON.parse(readFileSync(new URL('../../config.json',import.meta.url)));
-  assert.equal(config.settings.video.record,true);
+  assert.equal(config.settings.video.record,false);
   assert.equal(config.settings.video.seats,'all');
+  assert.equal(config.settings.replay.record,true);
   for(const n of [1, 2, 5, 20]){
     const roster=seats(n);
-    const settings=resolveCameras(resolveTeams(validateSettings(config.settings),roster),roster);
+    const settings=resolveCameras(resolveTeams(validateSettings({...config.settings,video:{...config.settings.video,record:true}}),roster),roster);
     assert.deepEqual(settings.video.seats,roster);
   }
 });

@@ -1,8 +1,7 @@
 FROM python:3.13-slim-trixie@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS runtime
 LABEL org.opencontainers.image.source="https://github.com/olamlabs/multi-agent-mindustry" \
       org.opencontainers.image.title="Mindustry series game runtime" \
-      org.opencontainers.image.licenses="GPL-3.0-only" \
-      io.olamlabs.mindustry.version="v160.7"
+      org.opencontainers.image.licenses="GPL-3.0-only"
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends openjdk-21-jdk-headless \

@@ -1,4 +1,4 @@
-package harbor;
+package agentbridge;
 
 import arc.util.Time;
 import arc.util.serialization.JsonValue;
@@ -14,7 +14,7 @@ import mindustry.world.blocks.units.*;
 import mindustry.world.blocks.payloads.UnitPayload;
 import java.util.*;
 
-public class TelemetrySmoke extends HarborBridge {
+public class TelemetrySmoke extends AgentBridge {
     void check(boolean value,String message){if(!value)throw new AssertionError(message);}
     Building place(Block block,int x,int y){Vars.world.tile(x,y).setBlock(block,Team.sharded,0);return Vars.world.build(x,y);}
     boolean supportedType(Block b){return production.supported.contains(b);}

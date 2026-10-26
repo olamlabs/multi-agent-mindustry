@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, openSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const RUN_DIR = process.env.OLAM_RUN_DIR ?? '/tmp/olam';
+const RUN_DIR = process.env.MINDUSTRY_RECORDER_DIR ?? '/tmp/mindustry-recorder';
 const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
 const displayOf = (index) => `:${99 + index}`;
 

@@ -23,7 +23,8 @@
         "OPENAI_API_KEY": "${OPENAI_API_KEY}"
       },
       "kwargs": {
-        "reasoning_effort": "high"
+        "reasoning_effort": "high",
+        "disable_web_search": true
       }
     },
     {
@@ -34,7 +35,8 @@
         "OPENAI_API_KEY": "${OPENAI_API_KEY}"
       },
       "kwargs": {
-        "reasoning_effort": "high"
+        "reasoning_effort": "high",
+        "disable_web_search": true
       }
     }
   ]

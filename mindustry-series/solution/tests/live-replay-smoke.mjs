@@ -16,7 +16,7 @@ const json = file => JSON.parse(readFileSync(file, 'utf8'));
 mkdirSync(evidence, { recursive: true });
 
 async function series(name, settings, prepare = () => {}, expectedFailure = null) {
-  const app = await startApp({ main: join(task, 'environment/sim/main.mjs'), seats, settings: { game_mode: 'pvp', map: 'Harbor Ring', team_count: 2, team_size: 2, seed: 7, chat_after_sec: 0, video: { record: false }, ...settings } });
+  const app = await startApp({ main: join(task, 'environment/sim/main.mjs'), seats, settings: { game_mode: 'pvp', map: 'Ring Arena', team_count: 2, team_size: 2, seed: 7, chat_after_sec: 0, video: { record: false }, ...settings } });
   try {
     prepare(app.logs);
     const deadline = Date.now() + 600_000;
@@ -93,7 +93,7 @@ assert.ok(stats.packets.EntitySnapshotCallPacket.count > 150 && stats.packets.Wo
 assert.ok(stats.keyframes >= 6, `a keyframe at each world and every 10 s: ${stats.keyframes}`);
 const head = header(join(recording, 'segment-000.mreplay'));
 assert.equal(head.mindustry.server_jar_sha256, await sha256(serverJar));
-assert.ok(Number.isInteger(head.mindustry.build) && head.mindustry.build > 0 && head.mods.some(mod => mod.name === 'harbor-bridge' && mod.hidden === true), JSON.stringify(head));
+assert.ok(Number.isInteger(head.mindustry.build) && head.mindustry.build > 0 && head.mods.some(mod => mod.name === 'agent-bridge' && mod.hidden === true), JSON.stringify(head));
 
 const [, game1Start, game1End, game2World, game2Start, game2End] = stats.marks.map(mark => mark.t);
 const whole = render('render-seat-1', ['--replay', recording, '--seats', 'seat-1', '--client-fps', '10', '--video-fps', '5', '--size', '640x360']);
@@ -139,7 +139,7 @@ const failed = json(join(broken.logs, 'replay', 'stats.json'));
 assert.equal(failed.complete, false);
 assert.match(failed.failure, /^cannot write the recording: java\.nio\.file\.FileAlreadyExistsException: .*segment-001\.mreplay$/);
 assert.equal(failed.segments, 1);
-const stoppedLines = readFileSync(join(broken.logs, 'mindustry-server.log'), 'utf8').split('\n').filter(line => line.includes('Harbor replay recorder stopped'));
+const stoppedLines = readFileSync(join(broken.logs, 'mindustry-server.log'), 'utf8').split('\n').filter(line => line.includes('Replay recorder stopped'));
 assert.equal(stoppedLines.length, 1, stoppedLines.join('\n'));
 assert.ok(header(join(broken.logs, 'replay', 'segment-000.mreplay')).mindustry.build > 0, 'what was recorded before the failure stays readable');
 

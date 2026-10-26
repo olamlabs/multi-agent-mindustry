@@ -94,7 +94,7 @@ export class Backend {
   phase() { return this.failure?'failed':this.complete?'over':this.finishPromise||this.ended?'ending':this.started?'running':this.abandoned?'not_started':'waiting'; }
 
   async boot() {
-    await this.engine.boot();
+    await this.engine.boot(this.settings);
     this.engine.exit?.then(reason=>{
       this.nativeExited=true;
       if(this.closing||this.complete||this.terminal) return;
@@ -103,7 +103,7 @@ export class Backend {
       this.onChange();
     });
 
-    const {lobby_sec:_lobby,agent_ready_required:_agentReady,wave_schedule_briefing:_briefing,...native}=this.settings;
+    const {lobby_sec:_lobby,agent_ready_required:_agentReady,wave_schedule_briefing:_briefing,replay:_replay,...native}=this.settings;
     this.setup=await this.engine.call('/setup',{...native,seats:this.seats});
     if(this.settings.endless_survival) {
       const receipts=readNativeSurvival(this.evidence);
@@ -176,6 +176,7 @@ export class Backend {
         };
 
         await cleanup('engine_stop',()=>this.engine.call('/stop',{}));
+        if(this.settings.replay.record) await this.engine.call('/finalize-replay',{});
 
         if(this.renderHandle) {
           const video=await cleanup('recording_finalization',()=>this.renderer.stop(this.renderHandle,terminal));

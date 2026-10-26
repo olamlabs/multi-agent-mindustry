@@ -13,7 +13,7 @@ class ProbeAgent(BaseAgent):
     def version(self):return '1'
     async def setup(self,environment):await asyncio.sleep(self.delay)
     async def run(self,instruction,environment,context):
-        script="""const fs=require('fs');const headers={authorization:'Bearer '+fs.readFileSync('/run/mindustry/token','utf8').trim()};(async()=>{let first=null;for(;;){const r=await fetch(process.env.HARBOR_SIM_URL+'/update',{headers});const view=await r.json();if(!r.ok)throw Error(JSON.stringify(view));if(!first)first={at:new Date().toISOString(),view};if(view.game_over){fs.mkdirSync('/logs/agent',{recursive:true});fs.writeFileSync('/logs/agent/probe.json',JSON.stringify({first,last:{at:new Date().toISOString(),view}}));break;}await new Promise(r=>setTimeout(r,200));}})().catch(e=>{console.error(e);process.exit(1)});"""
+        script="""const fs=require('fs');const headers={authorization:'Bearer '+fs.readFileSync('/run/mindustry/token','utf8').trim()};(async()=>{let first=null;for(;;){const r=await fetch(process.env.MINDUSTRY_SIM_URL+'/update',{headers});const view=await r.json();if(!r.ok)throw Error(JSON.stringify(view));if(!first)first={at:new Date().toISOString(),view};if(view.game_over){fs.mkdirSync('/logs/agent',{recursive:true});fs.writeFileSync('/logs/agent/probe.json',JSON.stringify({first,last:{at:new Date().toISOString(),view}}));break;}await new Promise(r=>setTimeout(r,200));}})().catch(e=>{console.error(e);process.exit(1)});"""
         r=await environment.exec('node -e '+shlex.quote(script))
         if r.return_code:raise RuntimeError(str(r.stderr))
         context.cost_usd=0
@@ -61,7 +61,7 @@ async def main():
         if mode=='replay_disk_full':
             p=task/'environment/docker-compose.yaml';compose=json.loads(p.read_text());compose['services']['main']['tmpfs']=['/logs/sim/replay:size=4096'];p.write_text(json.dumps(compose,indent=2))
         name=f'series-check-{mode.replace("_","-")}-{os.getpid()}'
-        trial=await Trial.create(TrialConfig(task={'path':task},environment={'override_cpus':float(os.environ.get('HARBOR_TEST_CPUS','8'))},trials_dir=out/mode/'trials',trial_name=name,participants=[{'seat':f'seat-{i}','import_path':'failure_checks:ProbeAgent','kwargs':{'delay':30 if mode=='slow_setup' else 0}} for i in range(1,c['seats']+1)]))
+        trial=await Trial.create(TrialConfig(task={'path':task},environment={'override_cpus':float(os.environ.get('MINDUSTRY_TEST_CPUS','8'))},trials_dir=out/mode/'trials',trial_name=name,participants=[{'seat':f'seat-{i}','import_path':'failure_checks:ProbeAgent','kwargs':{'delay':30 if mode=='slow_setup' else 0}} for i in range(1,c['seats']+1)]))
         running=asyncio.create_task(trial.run())
         if mode.startswith('native_'):await inject_fault(name,mode,running)
         result=await running;p=out/mode/'trials'/name;sim=p/'artifacts/sim'

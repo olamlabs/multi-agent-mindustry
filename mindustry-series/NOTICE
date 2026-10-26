@@ -10,7 +10,7 @@ and desktop JARs are downloaded unmodified from the official release. The native
 bridge and spectator viewer are additional GPLv3 modules built from the Java
 source included here; they do not replace the upstream JARs. The extracted
 content descriptions retain their upstream provenance in
-`environment/plugin/resources/harbor/SOURCES.md`.
+`environment/plugin/resources/agentbridge/SOURCES.md`.
 
 Changes dated 2026-10-24: standalone packaging, Harbor Multiagent
 lifecycle integration, series lifecycle and verifier, and

@@ -36,6 +36,6 @@ createServer((request,response)=>{
     response.end(JSON.stringify({ok:true,result:(results[request.url]??(()=>({})))(),...(data.seat?{status}:{})}));
   });
 }).listen(8091,'127.0.0.1',()=>{
-  console.log(`${at}${E}[94m${E}[1m[I]${E}[0m Harbor native bridge for Mindustry 160.7 listening on loopback :8091${E}[0m`);
+  console.log(`${at}${E}[94m${E}[1m[I]${E}[0m Agent bridge for Mindustry 160.7 listening on loopback :8091${E}[0m`);
   console.log(`${at}${E}[94m${E}[1m[I]${E}[0m Server loaded. Type 'help' for help.${E}[0m`);
 });

@@ -18,7 +18,7 @@ class InstructionClientTests(unittest.TestCase):
         exec(compile(example.split("players = call(", 1)[0], "instruction.md", "exec"), self.client)
         self.client["open"] = lambda *_args, **_kwargs: io.StringIO("test-only\n")
         self.environment = patch.dict(os.environ, {
-            "HARBOR_SIM_URL": "http://unused.invalid", "HARBOR_SEAT_TOKEN": "test-only",
+            "MINDUSTRY_SIM_URL": "http://unused.invalid", "MINDUSTRY_SEAT_TOKEN": "test-only",
         })
         self.environment.start()
         self.addCleanup(self.environment.stop)

@@ -1,4 +1,5 @@
 export const MAX_LOBBY_SEC = 86400;
+export const MAX_REPLAY_SEC = 86400;
 export const MAX_SEATS = 20;
 export function seatsFromRoster(roster) {
   if (!roster || typeof roster !== 'object' || Array.isArray(roster)) throw new Error('Invalid roster');
@@ -8,7 +9,7 @@ export function seatsFromRoster(roster) {
   return seats;
 }
 
-export const DEFAULTS = { game_mode: 'survival', map: 'Fork', time_limit_sec: null, agent_ready_required: true, endless_survival: {first_wave_ticks:14400,wave_spacing_ticks:7200,spawn_seed:1,enemy_unit_health_multiplier:1,enemy_unit_damage_multiplier:1}, seed: 1, lobby_sec: 1800, save_interval_sec: 60, all_chat: false, video: { record: true, fps: 5, width: 960, height: 540, seats: 'all' } };
+export const DEFAULTS = { game_mode: 'survival', map: 'Fork', time_limit_sec: null, agent_ready_required: true, endless_survival: {first_wave_ticks:14400,wave_spacing_ticks:7200,spawn_seed:1,enemy_unit_health_multiplier:1,enemy_unit_damage_multiplier:1}, seed: 1, lobby_sec: 1800, save_interval_sec: 60, all_chat: false, video: { record: true, fps: 5, width: 960, height: 540, seats: 'all' }, replay: { record: true, segment_sec: 600, keyframe_sec: 60 } };
 const SEAT_NAME = /^seat-([1-9]|1[0-9]|20)$/;
 export function validateEndlessProfile(profile) {
   const fields=['first_wave_ticks','wave_spacing_ticks','spawn_seed','enemy_unit_health_multiplier','enemy_unit_damage_multiplier'];
@@ -25,7 +26,7 @@ export function validateSettings(value) {
   if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error('settings must be an object');
   const allowed = new Set([...Object.keys(DEFAULTS), 'map', 'team_sizes', 'agent_ready_required', 'endless_survival', 'wave_schedule_briefing']);
   for (const key of Object.keys(value)) if (!allowed.has(key)) throw new Error(`Unknown setting: ${key}`);
-  const settings = { ...DEFAULTS, ...value, video: { ...DEFAULTS.video, ...value.video } };
+  const settings = { ...DEFAULTS, ...value, video: { ...DEFAULTS.video, ...value.video }, replay: { ...DEFAULTS.replay, ...value.replay } };
   {
     settings.endless_survival=validateEndlessProfile(settings.endless_survival);
     if (settings.game_mode!=='survival') throw new Error('endless_survival requires survival mode');
@@ -48,6 +49,10 @@ export function validateSettings(value) {
     if (!Number.isInteger(settings.video[key]) || settings.video[key] < min || settings.video[key] > max) throw new Error(`Invalid video.${key}`);
   }
   if (settings.video.width % 2 || settings.video.height % 2) throw new Error('Video dimensions must be even');
+  if (value.replay !== undefined && (!value.replay || typeof value.replay !== 'object' || Array.isArray(value.replay))) throw new Error('Invalid replay');
+  for (const key of Object.keys(settings.replay)) if (!Object.hasOwn(DEFAULTS.replay, key)) throw new Error(`Unknown replay setting: ${key}`);
+  if (typeof settings.replay.record !== 'boolean') throw new Error('replay.record must be boolean');
+  for (const key of ['segment_sec', 'keyframe_sec']) if (!Number.isInteger(settings.replay[key]) || settings.replay[key] < 1 || settings.replay[key] > MAX_REPLAY_SEC) throw new Error(`replay.${key} must be a whole number of seconds, 1..${MAX_REPLAY_SEC}`);
   const cameras = settings.video.seats;
   if (cameras !== 'all' && !(Number.isInteger(cameras) && cameras >= 0 && cameras <= MAX_SEATS) && !(Array.isArray(cameras) && cameras.length <= MAX_SEATS && cameras.every(seat => typeof seat === 'string' && SEAT_NAME.test(seat)) && new Set(cameras).size === cameras.length)) throw new Error(`video.seats must be "all", a number of cameras from 0 to ${MAX_SEATS}, or a list of distinct seats`);
   return settings;

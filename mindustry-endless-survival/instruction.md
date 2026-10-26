@@ -5,17 +5,17 @@ Your goal is to survive as long as possible. Enemy waves continue on the fixed b
 Call `POST /ready` with `{}` once you can access the tools. Every agent on your team must register before simulation starts. Use `POST /wait` or `GET /update` until `status.phase` is `running`; initial queries are available while waiting. This barrier gives every agent a start opportunity, not a reserved planning period. After startup, the game runs in real time while you think. The API instructions below still apply; the objective uses native simulation time, not the wall-time `status.t` clock.
 
 
-You are one of the players in Mindustry. Your seat ID is the value of the `$HARBOR_SEAT` environment variable. You play from your own Linux box, which is yours for the whole game: run any command, write and run any program, and keep files and processes going. The game is an HTTP API (below) that you can call however you like, by hand, from scripts, or from programs that run on their own. The other players are agents too, each in their own box. Your teammates share your team's result, and team messages (`say`) are how you reach them. Nothing limits how many turns you take or how often you call the API.
+You are one of the players in Mindustry. Your seat ID is the value of the `$MINDUSTRY_SEAT` environment variable. You play from your own Linux box, which is yours for the whole game: run any command, write and run any program, and keep files and processes going. The game is an HTTP API (below) that you can call however you like, by hand, from scripts, or from programs that run on their own. The other players are agents too, each in their own box. Your teammates share your team's result, and team messages (`say`) are how you reach them. Nothing limits how many turns you take or how often you call the API.
 
 The game runs in real time while you think, and every seat acts at the same time. You have the controls an ordinary player has; you cannot pause, grant resources, teleport or use the server console.
 
 ## Tools
 
-You play through the game's HTTP API at `$HARBOR_SIM_URL`. Every request carries `Authorization: Bearer <your seat's token>`; your seat's token is the file `/run/mindustry/token`. Write it to a file once and pass it to curl with `-H @file`:
+You play through the game's HTTP API at `$MINDUSTRY_SIM_URL`. Every request carries `Authorization: Bearer <your seat's token>`; your seat's token is the file `/run/mindustry/token`. Write it to a file once and pass it to curl with `-H @file`:
 
 ```sh
 printf 'Authorization: Bearer %s\n' "$(cat /run/mindustry/token)" > /tmp/sim-headers
-curl -s -H @/tmp/sim-headers "$HARBOR_SIM_URL/update"
+curl -s -H @/tmp/sim-headers "$MINDUSTRY_SIM_URL/update"
 ```
 
 `GET /` lists the endpoints with their JSON bodies.
@@ -28,7 +28,7 @@ The five game tools are `query`, `events`, `act`, `say` and `wake`. Each is a `P
 - `events` reads your log: native game events, the messages you can see, and your team's accepted inputs. It returns at once. `events {cursor:"chat", filter:[...]}` names a reader: its first read fixes its filter, and each later `events {cursor:"chat"}` returns only matching entries that reader has not returned yet. Readers with different names never affect each other, so a program and you can each keep your own. `more:true` means further entries are waiting. `events {latest:20, filter?}` returns the newest matching entries without moving any reader; `events {after:N}` reads from a raw position.
 - `act {ops:[...]}` applies inputs in order and answers with one result per input; a refused input does not refuse the call. Each result has `ok` and an `effect` or an `error` (`code`, `message`, `facts`). An accepted input has started, not finished.
 - `say {text?, data?, audience?, to?, reply_to?}` posts a message. The audience is your team unless you choose `self`, which only you can see. `to` names the seats it is for; everyone in the audience still sees it. `data` is any JSON object.
-- `wake {filters?}` sets what wakes you while you wait in `POST /wait`: a list of filters, where a log entry matching any one of them wakes you. Your list starts as `[[["kind","eq","say"],["from","ne",SEAT]], [["kind","eq","say"],["audience","eq","self"]]]`, messages from other seats and your own self messages, where `SEAT` is your `$HARBOR_SEAT` value. `wake {}` returns your list; to change it, send the whole edited list back as `wake {filters:[...]}`, which applies to entries logged from then on. To keep those and also wake when your team makes a unit, add `[["kind","eq","unit_create"],["unit.team","eq",TEAM]]` with `TEAM` = `status.team`.
+- `wake {filters?}` sets what wakes you while you wait in `POST /wait`: a list of filters, where a log entry matching any one of them wakes you. Your list starts as `[[["kind","eq","say"],["from","ne",SEAT]], [["kind","eq","say"],["audience","eq","self"]]]`, messages from other seats and your own self messages, where `SEAT` is your `$MINDUSTRY_SEAT` value. `wake {}` returns your list; to change it, send the whole edited list back as `wake {filters:[...]}`, which applies to entries logged from then on. To keep those and also wake when your team makes a unit, add `[["kind","eq","unit_create"],["unit.team","eq",TEAM]]` with `TEAM` = `status.team`.
 
 ### Action timing and state
 
@@ -147,7 +147,7 @@ class GameAPIError(RuntimeError):
 def call(path, body=None):
     headers = {"Authorization": "Bearer " + open("/run/mindustry/token").read().strip(), "Content-Type": "application/json"}
     data = None if body is None else json.dumps(body).encode()
-    request = urllib.request.Request(os.environ["HARBOR_SIM_URL"] + path, data=data, headers=headers, method="GET" if body is None else "POST")
+    request = urllib.request.Request(os.environ["MINDUSTRY_SIM_URL"] + path, data=data, headers=headers, method="GET" if body is None else "POST")
     try:
         with urllib.request.urlopen(request) as reply:
             result = json.load(reply)

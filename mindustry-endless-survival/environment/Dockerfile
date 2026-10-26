@@ -1,8 +1,7 @@
 FROM python:3.13-slim-trixie@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS runtime
 LABEL org.opencontainers.image.source="https://github.com/olamlabs/multi-agent-mindustry" \
       org.opencontainers.image.title="Mindustry Endless Survival runtime" \
-      org.opencontainers.image.licenses="GPL-3.0-only" \
-      io.olamlabs.mindustry.version="v160.5"
+      org.opencontainers.image.licenses="GPL-3.0-only"
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends openjdk-21-jdk-headless \
@@ -26,8 +25,8 @@ open('/usr/bin/node', 'wb').write(binary)" \
 
 COPY LICENSE NOTICE.md environment/dependencies/ARC-LICENSE environment/dependencies/WSTUNNEL-LICENSE environment/dependencies/SOURCES.md /opt/licenses/
 
-ADD --checksum=sha256:0bd327c6c3d551e7e8fdab7b695517f809baacca3b1f5cb1c1a8dd74836620e0 https://github.com/Anuken/Mindustry/releases/download/v160.5/server-release.jar /opt/mindustry/server.jar
-ADD --checksum=sha256:c2fd5a5dcb8d306525bb47ff28121237d4d25f53868562946491f2ef261dc272 https://github.com/Anuken/Mindustry/releases/download/v160.5/Mindustry.jar /opt/mindustry/Mindustry.jar
+ADD --checksum=sha256:f7b899a4038b95b14a824d5f8993984f79d73baa3254c385b6538327f9c0befd https://github.com/Anuken/Mindustry/releases/download/v160.7/server-release.jar /opt/mindustry/server.jar
+ADD --checksum=sha256:36d94941a1639478ad1d9be25a9d802c6f77552f400c6da0338b7b019f63a0d1 https://github.com/Anuken/Mindustry/releases/download/v160.7/Mindustry.jar /opt/mindustry/Mindustry.jar
 RUN chmod 0644 /opt/mindustry/*.jar \
  && ln -s Mindustry.jar /opt/mindustry/desktop.jar \
  && java -version && javac -version && node --version \

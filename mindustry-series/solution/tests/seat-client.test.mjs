@@ -63,7 +63,7 @@ test('a seat without a camera starts nothing, reports nothing, and exits cleanly
   await new Promise(resolve => coordinator.listen(0, '127.0.0.1', resolve));
   t.after(() => coordinator.close());
   writeFileSync(join(dir, 'secret'), 'k'.repeat(40));
-  const client = spawn(process.execPath, [new URL('../../environment/seat-client/client.mjs', import.meta.url).pathname], { env: { ...process.env, HARBOR_SEAT: 'seat-3', HARBOR_SIM_URLS: JSON.stringify({ 9000: 'http://127.0.0.1:9', 9001: `http://127.0.0.1:${coordinator.address().port}` }), HARBOR_SIM_HEADERS: '{}', MINDUSTRY_TUNNEL_SECRET: join(dir, 'secret'), MINDUSTRY_SEAT_RUN_DIR: join(dir, 'run'), MINDUSTRY_RECORDINGS_DIR: join(dir, 'recordings') }, stdio: 'ignore' });
+  const client = spawn(process.execPath, [new URL('../../environment/seat-client/client.mjs', import.meta.url).pathname], { env: { ...process.env, MINDUSTRY_SEAT: 'seat-3', MINDUSTRY_SIM_URLS: JSON.stringify({ 9000: 'http://127.0.0.1:9', 9001: `http://127.0.0.1:${coordinator.address().port}` }), MINDUSTRY_SIM_HEADERS: '{}', MINDUSTRY_TUNNEL_SECRET: join(dir, 'secret'), MINDUSTRY_SEAT_RUN_DIR: join(dir, 'run'), MINDUSTRY_RECORDINGS_DIR: join(dir, 'recordings') }, stdio: 'ignore' });
   t.after(()=>client.kill('SIGKILL'));
   const exited = new Promise(resolve => client.once('exit', (code, signal) => resolve({ code, signal })));
   const status = join(dir, 'run', 'status.json');

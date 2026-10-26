@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,readFileSync} from 'node:fs';
+import {existsSync,mkdtempSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {Backend} from '../../environment/sim/backend.mjs';
@@ -66,6 +66,45 @@ test('settings carry all_chat to native setup and default it off',async()=>{
   assert.equal(f.calls[0][1].save_interval_sec,60,'the engine saves the game every minute unless the launch says otherwise');
   assert.equal(validateSettings({save_interval_sec:0}).save_interval_sec,0,'0 saves only at the end');
   for(const save_interval_sec of [-1,1.5,'60',null])assert.throws(()=>validateSettings({save_interval_sec}),/save_interval_sec must be a whole number of seconds/);
+});
+
+test('replay settings default to recording, are checked, and reach the engine at boot rather than the native setup',async()=>{
+  assert.deepEqual(validateSettings({}).replay,{record:true,segment_sec:600,keyframe_sec:60});
+  assert.deepEqual(validateSettings({replay:{record:false}}).replay,{record:false,segment_sec:600,keyframe_sec:60});
+  for(const replay of [null,[],'on'])assert.throws(()=>validateSettings({replay}),/Invalid replay/);
+  assert.throws(()=>validateSettings({replay:{fps:5}}),/Unknown replay setting: fps/);
+  assert.throws(()=>validateSettings({replay:{record:'yes'}}),/replay.record must be boolean/);
+  for(const key of ['segment_sec','keyframe_sec'])for(const value of [0,1.5,'60',null,86401])
+    assert.throws(()=>validateSettings({replay:{[key]:value}}),new RegExp(`replay\\.${key} must be a whole number of seconds, 1\\.\\.86400`));
+  const f=fixture(()=>({}),{video:{record:false},replay:{segment_sec:300,keyframe_sec:30}});
+  let booted;f.engine.boot=async settings=>{booted=settings;};
+  await f.backend.boot();
+  assert.deepEqual(booted.replay,{record:true,segment_sec:300,keyframe_sec:30});
+  assert.equal('replay' in f.calls[0][1],false,'the plugin refuses fields it does not know');
+});
+
+test('the replay is finalized after the native stop and before the recordings, only when it is recorded',async()=>{
+  const terminal={reason:'core_destroyed',elapsed_simulation_seconds:2400};
+  const on=fixture();await running(on);on.backend.renderHandle={};
+  const order=[];on.backend.renderer.stop=async()=>{order.push('video');return {complete:true};};
+  const call=on.engine.call;on.engine.call=async(path,args)=>{order.push(path);return call(path,args);};
+  await on.backend.finish(terminal);
+  assert.deepEqual(order.filter(step=>['/stop','/finalize-replay','video'].includes(step)),['/stop','/finalize-replay','video']);
+  const off=fixture(()=>({}),{video:{record:false},replay:{record:false}});await running(off);
+  await off.backend.finish(terminal);
+  assert.equal(off.calls.some(([path])=>path==='/finalize-replay'),false);
+  assert.equal(off.backend.status(),'completed');
+});
+
+test('a replay that cannot be finalized fails the run, as missing evidence does',async()=>{
+  const f=fixture();await running(f);
+  const terminal={reason:'core_destroyed',elapsed_simulation_seconds:2400};
+  f.engine.call=async(path)=>{if(path==='/finalize-replay')throw new Error('Replay incomplete: cannot write the recording');return {};};
+  await f.backend.finish(terminal);
+  assert.match(f.backend.failure,/Replay incomplete/);
+  assert.equal(f.backend.status(),'failed');
+  assert.match(JSON.parse(readFileSync(join(f.evidence,'failure.json'))).error,/Replay incomplete/);
+  assert.equal(existsSync(join(f.evidence,'ancillary-errors.json')),false,'a broken log is never ancillary');
 });
 
 test('tools are the five verbs; say offers "all" only when enabled',async()=>{
@@ -170,7 +209,7 @@ test('a terminal waits for running calls, then completes and stays complete',asy
 });
 
 test('endless post-terminal cleanup errors preserve native completion as ancillary evidence',async()=>{
-  const f=fixture();let nativeExited;
+  const f=fixture(()=>({}),{video:{record:false},replay:{record:false}});let nativeExited;
   f.engine.exit=new Promise(resolve=>{nativeExited=resolve;});
   await running(f);
 

@@ -5,15 +5,15 @@ TASK_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd)
 TEST_RUN=$(mktemp -d)
 trap 'test -z "${SERVER_PID:-}" || kill "$SERVER_PID" 2>/dev/null || true; rm -rf "$TEST_RUN"' EXIT
 mkdir -p "$TEST_RUN/fixture" "$TEST_RUN/results"
-sh "$TASK_DIR/environment/plugin/build.sh" /opt/mindustry/server.jar "$TEST_RUN/harbor.jar"
-javac --release 17 -cp "/opt/mindustry/server.jar:$TEST_RUN/harbor.jar" -d "$TEST_RUN/fixture" "$TASK_DIR/solution/tests/native/SurvivalSmoke.java"
-printf '%s\n' '{"name":"harbor-survival-smoke","main":"harbor.SurvivalSmoke","version":"1","minGameVersion":"160"}' > "$TEST_RUN/fixture/plugin.json"
-jar uf "$TEST_RUN/harbor.jar" -C "$TEST_RUN/fixture" .
+sh "$TASK_DIR/environment/plugin/build.sh" /opt/mindustry/server.jar "$TEST_RUN/agent-bridge.jar"
+javac --release 17 -cp "/opt/mindustry/server.jar:$TEST_RUN/agent-bridge.jar" -d "$TEST_RUN/fixture" "$TASK_DIR/solution/tests/native/SurvivalSmoke.java"
+printf '%s\n' '{"name":"agent-bridge-survival-smoke","main":"agentbridge.SurvivalSmoke","version":"1","minGameVersion":"160"}' > "$TEST_RUN/fixture/plugin.json"
+jar uf "$TEST_RUN/agent-bridge.jar" -C "$TEST_RUN/fixture" .
 CASES=${SURVIVAL_CASES:-schedule-a schedule-b schedule-c long-small long-fractional economy-death stop modes budget clearance}
 for CASE in $CASES; do
     RUN="$TEST_RUN/$CASE"
     mkdir -p "$RUN/config/mods"
-    cp "$TEST_RUN/harbor.jar" "$RUN/config/mods/harbor.jar"
+    cp "$TEST_RUN/agent-bridge.jar" "$RUN/config/mods/agent-bridge.jar"
     (cd "$RUN" && MINDUSTRY_EVIDENCE_DIR="$RUN/evidence" exec java -jar /opt/mindustry/server.jar >server.log 2>&1) &
     SERVER_PID=$!
     for attempt in $(seq 1 240); do

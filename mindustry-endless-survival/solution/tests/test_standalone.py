@@ -16,7 +16,7 @@ class StandaloneTests(unittest.TestCase):
         return {str(p.relative_to(self.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in self.root.rglob('*') if p.is_file()}
     def test_isolated_configuration_all_supported_sizes_and_briefing(self):
         self.assertEqual(list(self.root.parent.iterdir()),[self.root])
-        runtime_before=(self.root/'environment/plugin/src/harbor/HarborBridge.java').read_bytes()
+        runtime_before=(self.root/'environment/plugin/src/agentbridge/AgentBridge.java').read_bytes()
         for n in range(1,21):
             subprocess.run([sys.executable,str(self.root/'scripts/configure.py'),'--seats',str(n),'--wave-schedule-briefing'],check=True,cwd=self.root.parent,capture_output=True)
             task=tomllib.loads((self.root/'task.toml').read_text())
@@ -24,11 +24,14 @@ class StandaloneTests(unittest.TestCase):
             self.assertEqual(list(task['agents']),[f'seat-{i+1}' for i in range(n)])
             self.assertEqual(len(list((self.root/'instructions').glob('seat-*.md'))),n)
             compose=json.loads((self.root/'environment/docker-compose.yaml').read_text())
-            self.assertEqual(json.loads(compose['services']['main']['environment']['HARBOR_SIM_SETTINGS'])['wave_schedule_briefing'],True)
+            self.assertEqual(json.loads(compose['services']['main']['environment']['MINDUSTRY_SIM_SETTINGS'])['wave_schedule_briefing'],True)
             self.assertEqual(compose['services']['main']['build']['context'],'..')
             self.assertEqual(compose['services']['main']['build']['dockerfile'],'environment/Dockerfile')
             self.assertTrue(task['verifier']['collect'])
+            self.assertEqual([name for name in compose['services'] if name.endswith('-game')],[])
+            self.assertEqual(json.loads(compose['services']['main']['environment']['MINDUSTRY_SIM_SETTINGS'])['video']['seats'],[])
 
+            self.assertEqual([artifact['source'] for artifact in task['artifacts']],['/logs/sim'])
             self.assertEqual(task['artifacts'][0]['destination'],'logs/sim')
             for i in range(n):
                 link=self.root/f'instructions/seat-{i+1}.md'
@@ -38,10 +41,10 @@ class StandaloneTests(unittest.TestCase):
                 self.assertIn('| 25 | 52:00 | 70,923 |',instruction)
                 self.assertIn("only agent seat" if n == 1 else f'Your team has {n} agent seats',instruction)
                 self.assertNotIn('/brief',instruction)
-                self.assertIn('$HARBOR_SEAT',instruction)
+                self.assertIn('$MINDUSTRY_SEAT',instruction)
                 self.assertIn('/run/mindustry/token',instruction)
-                self.assertNotIn('HARBOR_SEAT_TOKEN',instruction)
-        self.assertEqual(runtime_before,(self.root/'environment/plugin/src/harbor/HarborBridge.java').read_bytes())
+                self.assertNotIn('MINDUSTRY_SEAT_TOKEN',instruction)
+        self.assertEqual(runtime_before,(self.root/'environment/plugin/src/agentbridge/AgentBridge.java').read_bytes())
     def test_preparation_materializes_and_refreshes_shared_instructions(self):
         self.assertFalse((self.root/'instructions').exists())
         prepare_instructions(self.root)
@@ -109,11 +112,22 @@ class StandaloneTests(unittest.TestCase):
         configure.configure(self.root,{'seats':2,'wave_schedule_briefing':False})
         contract=json.loads((self.root/'environment/task-runtime/contract.json').read_text())
         self.assertNotIn('harness_protocols',contract)
-        self.assertEqual(contract['settings'],json.loads((self.root/'config.json').read_text())['settings'])
+        settings=json.loads((self.root/'config.json').read_text())['settings']
+        self.assertEqual(contract['settings'],{**settings,'video':{**settings['video'],'seats':[]}})
         job=json.loads((self.root/'job.json').read_text())
         self.assertEqual([p['seat'] for p in job['participants']],['seat-1','seat-2'])
         self.assertEqual(job['retry']['max_retries'],0)
         self.assertEqual(job['n_attempts'],1)
+    def test_live_cameras_get_a_game_service_only_for_recorded_seats(self):
+        settings=json.loads((self.root/'config.json').read_text())['settings']
+        for chosen,expected in [('all',['seat-1','seat-2','seat-3']),(['seat-2'],['seat-2']),(0,[])]:
+            with self.subTest(chosen=chosen):
+                configure.configure(self.root,{'seats':3,'settings':{**settings,'video':{**settings['video'],'record':True,'seats':chosen}}})
+                compose=json.loads((self.root/'environment/docker-compose.yaml').read_text())
+                task=tomllib.loads((self.root/'task.toml').read_text())
+                self.assertEqual([name for name in compose['services'] if name.endswith('-game')],[f'{seat}-game' for seat in expected])
+                self.assertEqual(sorted({artifact['service'] for artifact in task['artifacts'] if 'service' in artifact}),[f'{seat}-game' for seat in expected])
+                self.assertEqual(json.loads(compose['services']['main']['environment']['MINDUSTRY_SIM_SETTINGS'])['video']['seats'],chosen)
     def test_runtime_rejects_changed_benchmark_conditions(self):
         configure.configure(self.root,{'seats':2,'wave_schedule_briefing':False})
         script="""import assert from 'node:assert/strict';

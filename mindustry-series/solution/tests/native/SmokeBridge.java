@@ -1,4 +1,4 @@
-package harbor;
+package agentbridge;
 
 import arc.Events;
 import arc.util.serialization.JsonValue;
@@ -16,7 +16,7 @@ import mindustry.type.Item;
 import mindustry.world.Block;
 import mindustry.world.blocks.defense.turrets.ItemTurret;
 
-public class SmokeBridge extends HarborBridge {
+public class SmokeBridge extends AgentBridge {
     Building place(Block block, Team team, int x, int y){
         Vars.world.tile(x,y).setBlock(block,team,0);
         return Vars.world.build(x,y);

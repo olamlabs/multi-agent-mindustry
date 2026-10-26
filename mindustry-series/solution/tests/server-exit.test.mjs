@@ -46,5 +46,5 @@ test('a server that crashes mid-series fails it with its exit code and the error
 test('a server killed without an error line fails the series with the signal and the last lines of its log',async t=>{
   const {app,run}=await open(t);
   process.kill(Number(readFileSync(join(run,'server.pid'),'utf8')),'SIGKILL');
-  await recorded(app,"Mindustry server was killed by SIGKILL: [10-15-2026 01:51:18] [I] Harbor native bridge for Mindustry 160.7 listening on loopback :8091\n[10-15-2026 01:51:18] [I] Server loaded. Type 'help' for help.");
+  await recorded(app,"Mindustry server was killed by SIGKILL: [10-15-2026 01:51:18] [I] Agent bridge for Mindustry 160.7 listening on loopback :8091\n[10-15-2026 01:51:18] [I] Server loaded. Type 'help' for help.");
 });

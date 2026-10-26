@@ -112,7 +112,7 @@ else:
     settings.update(team_count=2, team_size=args.seats // 2)
 state = call('setup', seat=None, **settings)
 assert state['configured'] and (not state['started']) and (not state['completed']), state
-assert state['map'] == settings['map'] == 'Harbor Ring', state
+assert state['map'] == settings['map'] == 'Ring Arena', state
 assert (state['width'], state['height']) == (320, 320), state
 assert set(state['seat_teams']) == set(seats)
 if args.team_sizes:

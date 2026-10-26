@@ -17,14 +17,19 @@
     "game_mode": "survival",
     "lobby_sec": 1800,
     "map": "Fork",
+    "replay": {
+      "keyframe_sec": 60,
+      "record": true,
+      "segment_sec": 600
+    },
     "save_interval_sec": 60,
     "seed": 1,
     "time_limit_sec": null,
     "video": {
       "fps": 5,
       "height": 540,
-      "record": true,
-      "seats": "all",
+      "record": false,
+      "seats": [],
       "width": 960
     }
   },

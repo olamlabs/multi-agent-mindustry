@@ -1,4 +1,4 @@
-package harbor;
+package agentbridge;
 
 import arc.Events;
 import arc.math.Mathf;
@@ -17,7 +17,7 @@ import mindustry.world.Tile;
 import mindustry.world.blocks.defense.turrets.ItemTurret;
 import java.util.*;
 
-public class SurvivalSmoke extends HarborBridge {
+public class SurvivalSmoke extends AgentBridge {
 
     static final class Scripted implements UnitController {
         Unit unit;

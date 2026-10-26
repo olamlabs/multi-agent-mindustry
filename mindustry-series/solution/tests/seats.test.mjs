@@ -11,18 +11,18 @@ const root=fileURLToPath(new URL('../..',import.meta.url));
 test('Harbor Multiagent gets fresh per-seat tokens and validates before writing them',t=>{
   const dir=mkdtempSync(join(tmpdir(),'series-tokens-'));
   t.after(()=>rmSync(dir,{recursive:true,force:true}));
-  const env={HARBOR_SEATS:'["seat-1","seat-2"]',HARBOR_SIM_SETTINGS:'{"games":1}',MINDUSTRY_CONTROL_DIR:join(dir,"control"),MINDUSTRY_SEAT_TOKENS:dir};
+  const env={MINDUSTRY_SEATS:'["seat-1","seat-2"]',MINDUSTRY_SIM_SETTINGS:'{"games":1}',MINDUSTRY_CONTROL_DIR:join(dir,"control"),MINDUSTRY_SEAT_TOKENS:dir};
   prepareSeats(env);
-  const tokens=JSON.parse(env.HARBOR_SEAT_TOKENS);
+  const tokens=JSON.parse(env.MINDUSTRY_SEAT_TOKEN_MAP);
   assert.notEqual(tokens['seat-1'],tokens['seat-2']);
   for(const seat of ['seat-1','seat-2']) assert.equal(readFileSync(join(dir,seat,'token'),'utf8').trim(),tokens[seat]);
   prepareSeats(env);
-  assert.notEqual(JSON.parse(env.HARBOR_SEAT_TOKENS)['seat-1'],tokens['seat-1']);
-  const invalid={...env,HARBOR_SIM_SETTINGS:'{"games":101}',MINDUSTRY_SEAT_TOKENS:join(dir,'invalid')};
+  assert.notEqual(JSON.parse(env.MINDUSTRY_SEAT_TOKEN_MAP)['seat-1'],tokens['seat-1']);
+  const invalid={...env,MINDUSTRY_SIM_SETTINGS:'{"games":101}',MINDUSTRY_SEAT_TOKENS:join(dir,'invalid')};
   assert.throws(()=>prepareSeats(invalid),/1 to 100/);
   assert.equal(existsSync(invalid.MINDUSTRY_SEAT_TOKENS),false);
   for(const roster of ['[]','["seat-1","seat-1"]','["seat-2"]','["../other"]'])
-    assert.throws(()=>prepareSeats({...env,HARBOR_SEATS:roster}));
+    assert.throws(()=>prepareSeats({...env,MINDUSTRY_SEATS:roster}));
 });
 
 test('configuration round trips games 1 and 100, validates before mutation, and keeps seats and artifacts aligned',t=>{
@@ -34,9 +34,9 @@ test('configuration round trips games 1 and 100, validates before mutation, and 
   for(const games of [1,100]) {
     configure('--games',String(games),'--seats','2');
     const compose=JSON.parse(readFileSync(join(dir,'environment/docker-compose.yaml')));
-    assert.equal(JSON.parse(compose.services.main.environment.HARBOR_SIM_SETTINGS).games,games);
-    assert.equal(JSON.parse(compose.services.main.environment.HARBOR_SIM_SETTINGS).map,'Harbor Ring');
-    assert.deepEqual(JSON.parse(compose.services.main.environment.HARBOR_SEATS),['seat-1','seat-2']);
+    assert.equal(JSON.parse(compose.services.main.environment.MINDUSTRY_SIM_SETTINGS).games,games);
+    assert.equal(JSON.parse(compose.services.main.environment.MINDUSTRY_SIM_SETTINGS).map,'Ring Arena');
+    assert.deepEqual(JSON.parse(compose.services.main.environment.MINDUSTRY_SEATS),['seat-1','seat-2']);
     const task=JSON.parse(execFileSync('python3',['-c','import json,sys,tomllib;print(json.dumps(tomllib.load(open(sys.argv[1],"rb"))))',join(dir,'task.toml')]));
     assert.deepEqual(Object.keys(task.agents),['seat-1','seat-2']);
     if(games===100) assert.ok(task.agent.timeout_sec>100*600+1800+300);
@@ -51,7 +51,8 @@ test('configuration round trips games 1 and 100, validates before mutation, and 
       assert.ok(instruction.startsWith(`You are ${seat},`));
       assert.equal(instruction.includes('{seat}'),false);
       assert.ok(instruction.includes('/run/mindustry/token'));
-      assert.ok(task.artifacts.some(a=>a.source===`/recordings/${seat}`&&a.service===`${seat}-game`));
+      assert.equal(compose.services[`${seat}-game`],undefined);
+      assert.equal(task.artifacts.some(a=>a.service===`${seat}-game`),false);
     }
   }
   const before=readFileSync(join(dir,'config.json'),'utf8');
@@ -75,16 +76,16 @@ test('documented team, match-limit and game-count settings reach the runtime tog
     cpSync(join(root,path),join(dir,path),{recursive:true});
   const config=JSON.parse(readFileSync(join(dir,'config.json'),'utf8'));
   config.seats=10;
-  Object.assign(config.settings,{map:'Harbor Ring',team_count:2,team_size:5,games:1});
+  Object.assign(config.settings,{map:'Ring Arena',team_count:2,team_size:5,games:1});
   for(const time_limit_sec of [1800,null]) {
     config.settings.time_limit_sec=time_limit_sec;
     writeFileSync(join(dir,'config.json'),JSON.stringify(config));
     execFileSync('python3',[join(dir,'scripts/configure.py'),'--task',dir]);
     const compose=JSON.parse(readFileSync(join(dir,'environment/docker-compose.yaml')));
-    const settings=JSON.parse(compose.services.main.environment.HARBOR_SIM_SETTINGS);
-    assert.deepEqual(settings,config.settings);
+    const settings=JSON.parse(compose.services.main.environment.MINDUSTRY_SIM_SETTINGS);
+    assert.deepEqual(settings,{...config.settings,video:{...config.settings.video,seats:[]}});
     const roster=Array.from({length:10},(_,i)=>`seat-${i+1}`);
-    assert.deepEqual(JSON.parse(compose.services.main.environment.HARBOR_SEATS),roster);
+    assert.deepEqual(JSON.parse(compose.services.main.environment.MINDUSTRY_SEATS),roster);
     const task=JSON.parse(execFileSync('python3',['-c','import json,sys,tomllib;print(json.dumps(tomllib.load(open(sys.argv[1],"rb"))))',join(dir,'task.toml')]));
     assert.deepEqual(Object.keys(task.agents),roster);
     assert.equal(task.agent.timeout_sec,63000);

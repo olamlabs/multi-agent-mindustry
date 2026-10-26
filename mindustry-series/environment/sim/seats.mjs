@@ -4,10 +4,10 @@ import {pathToFileURL} from 'node:url';
 import {validateSettings, seatsFromRoster, resolveTeams, resolveCameras} from './settings.mjs';
 
 export function prepareSeats(env = process.env) {
-  const seats = JSON.parse(env.HARBOR_SEATS ?? '[]');
-  if (!Array.isArray(seats) || new Set(seats).size !== seats.length) throw Error('HARBOR_SEATS must list distinct canonical seats');
+  const seats = JSON.parse(env.MINDUSTRY_SEATS ?? '[]');
+  if (!Array.isArray(seats) || new Set(seats).size !== seats.length) throw Error('MINDUSTRY_SEATS must list distinct canonical seats');
   const canonical = seatsFromRoster(Object.fromEntries(seats.map(s => [s, {}])));
-  const settings = validateSettings(JSON.parse(env.HARBOR_SIM_SETTINGS ?? '{}'));
+  const settings = validateSettings(JSON.parse(env.MINDUSTRY_SIM_SETTINGS ?? '{}'));
   resolveCameras(resolveTeams(settings, canonical), canonical);
   const control = env.MINDUSTRY_CONTROL_DIR ?? '/run/mindustry-control';
   mkdirSync(control, {recursive: true});
@@ -19,7 +19,7 @@ export function prepareSeats(env = process.env) {
     mkdirSync(folder, {recursive: true});
     writeFileSync(`${folder}/token`, `${tokens[seat]}\n`, {mode: 0o644});
   }
-  env.HARBOR_SEAT_TOKENS = JSON.stringify(tokens);
+  env.MINDUSTRY_SEAT_TOKEN_MAP = JSON.stringify(tokens);
   return {seats: canonical, settings};
 }
 

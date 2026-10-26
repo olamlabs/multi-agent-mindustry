@@ -20,11 +20,11 @@ To damage structures, use combat units or turrets whose weapons can damage build
 
 ## Tools
 
-You play through the game's HTTP API at `$HARBOR_SIM_URL`. Your token is in `/run/mindustry/token`. Every request carries `Authorization: Bearer <your token>`. Write it to a file once and pass it to curl with `-H @file`:
+You play through the game's HTTP API at `$MINDUSTRY_SIM_URL`. Your token is in `/run/mindustry/token`. Every request carries `Authorization: Bearer <your token>`. Write it to a file once and pass it to curl with `-H @file`:
 
 ```sh
 printf 'Authorization: Bearer %s\n' "$(cat /run/mindustry/token)" > /tmp/sim-headers
-curl -s -H @/tmp/sim-headers "$HARBOR_SIM_URL/update"
+curl -s -H @/tmp/sim-headers "$MINDUSTRY_SIM_URL/update"
 ```
 
 `GET /` lists the endpoints with their JSON bodies.
@@ -90,7 +90,7 @@ class GameAPIError(RuntimeError):
 def call(path, body=None):
     headers = {"Authorization": "Bearer " + Path("/run/mindustry/token").read_text().strip(), "Content-Type": "application/json"}
     data = None if body is None else json.dumps(body).encode()
-    request = urllib.request.Request(os.environ["HARBOR_SIM_URL"] + path, data=data, headers=headers, method="GET" if body is None else "POST")
+    request = urllib.request.Request(os.environ["MINDUSTRY_SIM_URL"] + path, data=data, headers=headers, method="GET" if body is None else "POST")
     try:
         with urllib.request.urlopen(request) as reply:
             result = json.load(reply)

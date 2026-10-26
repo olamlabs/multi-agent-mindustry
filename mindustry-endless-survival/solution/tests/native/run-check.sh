@@ -14,10 +14,10 @@ TASK_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd)
 TEST_RUN=$(mktemp -d)
 trap 'test -z "${SERVER_PID:-}" || kill "$SERVER_PID" 2>/dev/null || true; rm -rf "$TEST_RUN"' EXIT
 mkdir -p "$TEST_RUN/config/mods" "$TEST_RUN/fixture"
-sh "$TASK_DIR/environment/plugin/build.sh" /opt/mindustry/server.jar "$TEST_RUN/config/mods/harbor.jar"
-javac --release 17 -cp "/opt/mindustry/server.jar:$TEST_RUN/config/mods/harbor.jar" -d "$TEST_RUN/fixture" "$TASK_DIR/solution/tests/native/$CLASS.java"
-printf '{"name":"harbor-test","main":"harbor.%s","version":"1","minGameVersion":"160"}\n' "$CLASS" > "$TEST_RUN/fixture/plugin.json"
-jar uf "$TEST_RUN/config/mods/harbor.jar" -C "$TEST_RUN/fixture" .
+sh "$TASK_DIR/environment/plugin/build.sh" /opt/mindustry/server.jar "$TEST_RUN/config/mods/agent-bridge.jar"
+javac --release 17 -cp "/opt/mindustry/server.jar:$TEST_RUN/config/mods/agent-bridge.jar" -d "$TEST_RUN/fixture" "$TASK_DIR/solution/tests/native/$CLASS.java"
+printf '{"name":"agent-bridge-test","main":"agentbridge.%s","version":"1","minGameVersion":"160"}\n' "$CLASS" > "$TEST_RUN/fixture/plugin.json"
+jar uf "$TEST_RUN/config/mods/agent-bridge.jar" -C "$TEST_RUN/fixture" .
 cd "$TEST_RUN"
 MINDUSTRY_EVIDENCE_DIR="$TEST_RUN/evidence" java -jar /opt/mindustry/server.jar >server.log 2>&1 &
 SERVER_PID=$!

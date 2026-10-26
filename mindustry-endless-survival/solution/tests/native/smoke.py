@@ -1,4 +1,4 @@
-"""Contract smoke against the real v160.5 engine; no mocked game responses."""
+"""Contract smoke against the real v160.7 engine; no mocked game responses."""
 import argparse
 import json
 import math
@@ -85,7 +85,7 @@ def transfer_refusal(name, code, **body):
 
 def transfer_error(name, code, **body):
     return transfer_refusal(name, code, **body)['facts']
-assert call('health', seat=None)['version'] == '160.5'
+assert call('health', seat=None)['version'] == '160.7'
 for method, body in [('GET', None), ('POST', b''), ('POST', b'{broken')]:
     req = urllib.request.Request('http://127.0.0.1:8091/health', body, method=method)
     with urllib.request.urlopen(req, timeout=30) as response:

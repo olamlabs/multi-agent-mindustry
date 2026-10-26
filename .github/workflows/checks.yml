@@ -1,10 +1,12 @@
-name: Task regression checks
+name: Task checks
 on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
 concurrency:
   group: checks-${{ github.ref }}
   cancel-in-progress: true
+env:
+  HARBOR_MULTIAGENT_COMMIT: 4a194016336ccd1ce3fcc799b10158ca0375eb63
 jobs:
   regression:
     runs-on: ubuntu-24.04
@@ -25,6 +27,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Committed task files match config.json
+        working-directory: ${{ matrix.task }}
+        run: |
+          python3 scripts/configure.py
+          git add --intent-to-add .
+          git diff --exit-code .
       - name: Recorder dependencies
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
       - name: Native recorder regression
@@ -34,3 +42,116 @@ jobs:
       - name: Survival configuration regressions
         if: matrix.task == 'mindustry-endless-survival'
         run: python3 -m unittest discover -s mindustry-endless-survival/solution/tests -p 'test_*.py'
+
+  series-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the runtime from public dependencies
+        run: docker build --platform linux/amd64 --target runtime -f mindustry-series/environment/Dockerfile -t series-runtime:ci mindustry-series
+      - name: Plugin through two games
+        run: |
+          for args in "--seats 4" "--seats 8"; do
+            docker run --rm -v "$PWD/mindustry-series:/task:ro" series-runtime:ci sh /task/solution/tests/native/run-smoke.sh $args
+          done
+      - name: Seat API through a series
+        run: docker run --rm -v "$PWD/mindustry-series:/task" -e SMOKE_SEATS=4 -e SMOKE_EVIDENCE=/tmp/smoke series-runtime:ci node /task/solution/tests/live-backend-smoke.mjs
+      - name: Cameras through a reset
+        run: docker run --rm -v "$PWD/mindustry-series:/task" -v "$RUNNER_TEMP/evidence/viewers:/evidence" -e SMOKE_EVIDENCE=/evidence series-runtime:ci node /task/solution/tests/live-viewer-reset-smoke.mjs
+      - name: Replay recorded through a reset and rendered from the recording
+        run: |
+          docker run --rm -v "$PWD/mindustry-series:/task" -v "$RUNNER_TEMP/evidence/replay:/evidence" -e SMOKE_EVIDENCE=/evidence series-runtime:ci node /task/solution/tests/live-replay-smoke.mjs
+          docker run --rm -v "$PWD/mindustry-series:/task:ro" series-runtime:ci node /task/solution/tests/native/replay-viewer-state.mjs
+      - name: Make evidence readable
+        if: always()
+        run: |
+          if [ -d "$RUNNER_TEMP/evidence" ]; then
+            docker run --rm --user 0 --entrypoint sh -v "$RUNNER_TEMP/evidence:/evidence" series-runtime:ci -c 'chmod -R a+rX /evidence'
+          fi
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: series-native
+          path: ${{ runner.temp }}/evidence
+          retention-days: 7
+
+  endless-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the runtime from public dependencies
+        run: docker build --platform linux/amd64 --target runtime -f mindustry-endless-survival/environment/Dockerfile -t endless-runtime:ci mindustry-endless-survival
+      - name: Waves, clock, core loss and grading evidence
+        run: docker run --rm -v "$PWD/mindustry-endless-survival:/task:ro" -v "$RUNNER_TEMP/evidence/survival:/evidence" -e SURVIVAL_EVIDENCE_DIR=/evidence endless-runtime:ci sh /task/solution/tests/native/run-survival.sh
+      - name: API and telemetry
+        run: |
+          for check in api telemetry evaluation; do
+            docker run --rm -v "$PWD/mindustry-endless-survival:/task:ro" endless-runtime:ci sh /task/solution/tests/native/run-check.sh "$check"
+          done
+      - name: Cameras and construction
+        run: |
+          for check in renderer construction; do
+            docker run --rm --network=none -v "$PWD/mindustry-endless-survival:/task:ro" -v "$RUNNER_TEMP/evidence/$check:/evidence" -e SMOKE_EVIDENCE=/evidence endless-runtime:ci node "/task/solution/tests/native/$check.mjs"
+          done
+      - name: Game log recorded, broken and off, and rendered from the log
+        run: |
+          docker run --rm -v "$PWD/mindustry-endless-survival:/task:ro" -v "$RUNNER_TEMP/evidence/replay:/evidence" -e SMOKE_EVIDENCE=/evidence endless-runtime:ci node /task/solution/tests/native/replay.mjs
+          docker run --rm -v "$PWD/mindustry-endless-survival:/task:ro" endless-runtime:ci node /task/solution/tests/native/replay-viewer-state.mjs
+      - name: Make evidence readable
+        if: always()
+        run: |
+          if [ -d "$RUNNER_TEMP/evidence" ]; then
+            docker run --rm --user 0 --entrypoint sh -v "$RUNNER_TEMP/evidence:/evidence" endless-runtime:ci -c 'chmod -R a+rX /evidence'
+          fi
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: endless-native
+          path: ${{ runner.temp }}/evidence
+          retention-days: 7
+
+  harbor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [mindustry-series, mindustry-endless-survival]
+    env:
+      MINDUSTRY_TEST_CPUS: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: 0.13.5
+      - name: Install the pinned Harbor Multiagent from its lock
+        run: |
+          set -euo pipefail
+          git init -q "$RUNNER_TEMP/harbor"
+          git -C "$RUNNER_TEMP/harbor" fetch -q --depth 1 https://github.com/olamlabs/harbor-multiagent "$HARBOR_MULTIAGENT_COMMIT"
+          git -C "$RUNNER_TEMP/harbor" checkout -q FETCH_HEAD
+          uv sync --project "$RUNNER_TEMP/harbor" --frozen --no-dev
+      - name: Series with scripted agents, normal and early exits
+        if: matrix.task == 'mindustry-series'
+        env:
+          SMOKE_EVIDENCE: ${{ runner.temp }}/evidence/lifecycle
+        run: '"$RUNNER_TEMP/harbor/.venv/bin/python" mindustry-series/solution/tests/harbor_smoke.py'
+      - name: Series fault cases
+        if: matrix.task == 'mindustry-series'
+        env:
+          SMOKE_EVIDENCE: ${{ runner.temp }}/evidence/faults
+          SMOKE_MODES: replay,slow_setup,lobby_missing,native_kill,replay_disk_full
+        run: '"$RUNNER_TEMP/harbor/.venv/bin/python" mindustry-series/solution/tests/failure_checks.py'
+      - name: Survival in two fresh worlds with scripted agents
+        if: matrix.task == 'mindustry-endless-survival'
+        run: '"$RUNNER_TEMP/harbor/.venv/bin/python" mindustry-endless-survival/solution/integration.py --output "$RUNNER_TEMP/evidence/lifecycle" --cpus "$MINDUSTRY_TEST_CPUS"'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: harbor-${{ matrix.task }}
+          path: ${{ runner.temp }}/evidence
+          retention-days: 7

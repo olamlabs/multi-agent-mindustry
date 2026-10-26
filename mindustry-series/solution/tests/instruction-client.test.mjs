@@ -15,7 +15,7 @@ text = Path(sys.argv[1]).read_text()
 example = text.split("\x60\x60\x60python\\n", 1)[1].split("\x60\x60\x60", 1)[0]
 client = {}
 exec(compile(example.split("players = call(", 1)[0], "instruction.md", "exec"), client)
-with patch.dict(os.environ, {"HARBOR_SIM_URL": sys.argv[2]}), patch.object(Path, "read_text", return_value="test-token"):
+with patch.dict(os.environ, {"MINDUSTRY_SIM_URL": sys.argv[2]}), patch.object(Path, "read_text", return_value="test-token"):
     try:
         result = client["call"](sys.argv[3], {})
     except client["GameAPIError"] as error:

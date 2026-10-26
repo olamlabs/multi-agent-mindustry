@@ -11,9 +11,9 @@ export async function startApp({ main, seats, settings, env = {}, args = [] }) {
     env: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
-      HARBOR_SEATS: JSON.stringify(seats),
-      HARBOR_SEAT_TOKENS: JSON.stringify(tokens),
-      HARBOR_SIM_SETTINGS: JSON.stringify(settings),
+      MINDUSTRY_SEATS: JSON.stringify(seats),
+      MINDUSTRY_SEAT_TOKEN_MAP: JSON.stringify(tokens),
+      MINDUSTRY_SIM_SETTINGS: JSON.stringify(settings),
       SIM_LOGS: logs,
       PORT: '0',
       ...env,

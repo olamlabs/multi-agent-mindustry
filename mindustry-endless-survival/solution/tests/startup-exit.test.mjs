@@ -39,8 +39,8 @@ for (const [name, command] of [['SIGKILL', 'kill -KILL $$'], ['SIGTERM', 'kill -
       await writeFile(join(bin, 'sh'), '#!/bin/sh\nexit 0\n', {mode: 0o755});
       await writeFile(join(bin, 'java'), `#!/bin/sh\n${command}\n`, {mode: 0o755});
       const env = {...process.env, PATH: `${bin}:${process.env.PATH}`, PORT: '0',
-        HARBOR_SEATS: '["seat-1"]', HARBOR_SEAT_TOKENS: '{"seat-1":"test-token"}',
-        HARBOR_SIM_SETTINGS: '{}', SIM_LOGS: logs, MINDUSTRY_RUN_DIR: join(directory, 'run')};
+        MINDUSTRY_SEATS: '["seat-1"]', MINDUSTRY_SEAT_TOKEN_MAP: '{"seat-1":"test-token"}',
+        MINDUSTRY_SIM_SETTINGS: '{}', SIM_LOGS: logs, MINDUSTRY_RUN_DIR: join(directory, 'run')};
       const app = await run([main], env);
       assert.equal(app.code, 1, app.output);
       assert.match(app.output, /Mindustry server exited during startup/);

@@ -11,7 +11,7 @@ const seats = Array.from({ length: seatCount }, (_, i) => `seat-${i + 1}`);
 const cwd = '/tmp/mindustry-renderer-smoke';
 mkdirSync(evidence, { recursive: true });
 mkdirSync(`${cwd}/config/mods`, { recursive: true });
-execFileSync('sh', ['/task/environment/plugin/build.sh', '/opt/mindustry/server.jar', `${cwd}/config/mods/harbor-bridge.jar`]);
+execFileSync('sh', ['/task/environment/plugin/build.sh', '/opt/mindustry/server.jar', `${cwd}/config/mods/agent-bridge.jar`]);
 const log = openSync(`${evidence}/server.log`, 'a');
 const server = spawn('java', ['-Xmx512m', '-jar', '/opt/mindustry/server.jar'], { cwd, stdio: ['pipe', log, log] });
 const sleep = ms => new Promise(r => setTimeout(r, ms));

@@ -5,12 +5,12 @@ this task folder are licensed under GNU GPL version 3 only (`GPL-3.0-only`).
 See [LICENSE](LICENSE). This notice applies to this task folder, not other tasks
 in the surrounding repository. There is no warranty; see the license.
 
-This task integrates **Mindustry v160.5**, by Anuken and contributors. Its server
+This task integrates **Mindustry v160.7**, by Anuken and contributors. Its server
 and desktop JARs are downloaded unmodified from the official release. The native
 bridge and spectator viewer are additional GPLv3 modules built from the Java
 source included here; they do not replace the upstream JARs. The extracted
 content descriptions retain their upstream provenance in
-`environment/plugin/resources/harbor/SOURCES.md`.
+`environment/plugin/resources/agentbridge/SOURCES.md`.
 
 Changes dated 2026-10-24: standalone packaging, Harbor Multiagent
 lifecycle integration, a task-specific survival profile and verifier, and

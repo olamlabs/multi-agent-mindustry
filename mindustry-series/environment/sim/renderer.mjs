@@ -94,7 +94,7 @@ export async function bootRenderers({ evidence, video: input, seats, signal, sea
   signal?.addEventListener('abort', handle.abortListener, { once: true });
   try {
     onProgress('Compiling native spectator camera plugin');
-    await finish(launch(handle, 'viewer-compile', 'javac', ['--release', '17', '-cp', jar, '-d', classes, join(taskDir, 'renderer/src/harbor/mindustry/SeatViewer.java')]), signal);
+    await finish(launch(handle, 'viewer-compile', 'javac', ['--release', '17', '-cp', jar, '-d', classes, join(taskDir, 'renderer/src/agentbridge/camera/SeatViewer.java')]), signal);
     const mod = join(runDir, 'seat-viewer.jar');
     await finish(launch(handle, 'viewer-package', 'jar', ['cf', mod, '-C', classes, '.', '-C', join(taskDir, 'renderer'), 'mod.json', '-C', join(taskDir, '..'), 'LICENSE', '-C', join(taskDir, '..'), 'NOTICE']), signal);
     for (let index = 0; index < seatNames.length; index++) {
@@ -109,7 +109,7 @@ export async function bootRenderers({ evidence, video: input, seats, signal, sea
 
       const game = launch(handle, `${seat}-client`, 'nice', ['-n', '10', 'java', '-XX:ActiveProcessorCount=2', '-Xms128m', '-Xmx640m', '-Dnodiscord=true', '-Djava.awt.headless=false', `-Dmindustry.data.dir=${dataDir}`, '-jar', jar, '-width', String(video.width), '-height', String(video.height), '-maximized', 'false'], {
         DISPLAY: display, SDL_VIDEODRIVER: 'x11', SDL_AUDIODRIVER: 'dummy', LIBGL_ALWAYS_SOFTWARE: '1', LP_NUM_THREADS: '1',
-        HARBOR_VIEW_SEAT: seat, HARBOR_VIEW_READY: ready, HARBOR_VIEW_HEALTH: join(handle.logDir, `${seat}-connection.json`), HARBOR_VIEW_FPS: String(video.fps),
+        MINDUSTRY_VIEW_SEAT: seat, MINDUSTRY_VIEW_READY: ready, MINDUSTRY_VIEW_HEALTH: join(handle.logDir, `${seat}-connection.json`), MINDUSTRY_VIEW_FPS: String(video.fps),
       });
       while (!existsSync(ready)) {
         signal?.throwIfAborted();
@@ -201,7 +201,7 @@ export async function stopVideo(handle) {
   const result = { type: 'video', record: true, native_clients: handle.labels.length, complete: handle.videoComplete, recorder_exit_code: handle.recording.child.exitCode, recorder_signal: handle.recording.child.signalCode, still, fps: handle.video.fps, width: columns * handle.video.width, height: rows * handle.video.height, files };
   handle.videoResult = result;
   writeFileSync(join(out, 'metadata.json'), JSON.stringify(result, null, 2));
-  const ffmpegLog = join(process.env.OLAM_RUN_DIR ?? '/tmp/olam', 'ffmpeg.txt');
+  const ffmpegLog = join(process.env.MINDUSTRY_RECORDER_DIR ?? '/tmp/mindustry-recorder', 'ffmpeg.txt');
   if (existsSync(ffmpegLog)) copyFileSync(ffmpegLog, join(handle.logDir, 'ffmpeg.log'));
   return result;
 }

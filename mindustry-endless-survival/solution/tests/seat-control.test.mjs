@@ -86,7 +86,7 @@ test('the seat client and its renderer install no request clock, deadline or ret
   for (const file of ['environment/seat-client/client.mjs', 'environment/sim/renderer.mjs']) {
     const source = readFileSync(join(root, file), 'utf8');
     assert.doesNotMatch(source.replace(/fetchImpl/g, ''), /\bfetch\(/, `${file}: fetch's Undici client has connect, header and body deadlines`);
-    for (const clock of [/AbortSignal\.timeout/, /(?:performance|Date)\.now\(\)\s*\+/, /timeoutMs/, /[Dd]eadline\s*=/, /attempt\s*</, /HARBOR_WORLD_/, /waitForSeatControl|startupNotReady/]) assert.doesNotMatch(source, clock, `${file}: ${clock}`);
+    for (const clock of [/AbortSignal\.timeout/, /(?:performance|Date)\.now\(\)\s*\+/, /timeoutMs/, /[Dd]eadline\s*=/, /attempt\s*</, /MINDUSTRY_WORLD_/, /waitForSeatControl|startupNotReady/]) assert.doesNotMatch(source, clock, `${file}: ${clock}`);
     for (const use of source.match(/setTimeout\([^)]*\)/g) ?? []) assert.match(use, /^setTimeout\(resolve, ms\)$/, `${file}: ${use}`);
   }
 });

@@ -1,10 +1,10 @@
 {
-  "name": "harbor-seat-viewer",
-  "displayName": "Harbor native seat viewer",
+  "name": "agent-bridge-camera",
+  "displayName": "Agent bridge camera",
   "author": "Olam Labs",
   "version": "1.0",
   "minGameVersion": "160",
-  "main": "harbor.mindustry.SeatViewer",
+  "main": "agentbridge.camera.SeatViewer",
   "java": true,
   "hidden": true,
   "description": "Read-only spectator camera for native multiplayer video evidence."

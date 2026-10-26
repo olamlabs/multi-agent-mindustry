@@ -203,11 +203,11 @@ export function seatControl({ seat, url, headers, secret, logDir, fetchImpl = co
 }
 
 export async function main() {
-  const seat = process.env.HARBOR_SEAT;
-  if (!/^seat-([1-9]|[1-9][0-9]|1[0-9][0-9]|200)$/.test(seat ?? '')) throw new Error('HARBOR_SEAT must be seat-1 through seat-200');
-  const urls = JSON.parse(process.env.HARBOR_SIM_URLS ?? '{}');
-  const headers = JSON.parse(process.env.HARBOR_SIM_HEADERS ?? '{}');
-  if (!urls['9000'] || !urls['9001']) throw new Error('HARBOR_SIM_URLS needs the tunnel and control ports, 9000 and 9001');
+  const seat = process.env.MINDUSTRY_SEAT;
+  if (!/^seat-([1-9]|[1-9][0-9]|1[0-9][0-9]|200)$/.test(seat ?? '')) throw new Error('MINDUSTRY_SEAT must be seat-1 through seat-200');
+  const urls = JSON.parse(process.env.MINDUSTRY_SIM_URLS ?? '{}');
+  const headers = JSON.parse(process.env.MINDUSTRY_SIM_HEADERS ?? '{}');
+  if (!urls['9000'] || !urls['9001']) throw new Error('MINDUSTRY_SIM_URLS needs the tunnel and control ports, 9000 and 9001');
   const secret = readFileSync(process.env.MINDUSTRY_TUNNEL_SECRET ?? '/run/mindustry-control/tunnel-secret', 'utf8').trim();
   if (!secret) throw new Error('Missing private game tunnel key');
   const logDir = process.env.MINDUSTRY_SEAT_RUN_DIR ?? '/tmp/mindustry-seat';

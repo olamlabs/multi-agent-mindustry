@@ -39,8 +39,8 @@ test('PvP evidence fixture passes, contradictory and missing evidence fails clos
   assert.equal(grade(e).reward.completed,1);
  }
 });
-test('failed standalone regrade removes prior reward and summary',t=>{
- const dir=mkdtempSync(join(tmpdir(),'series-regrade-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
+test('failed standalone verification removes prior reward and summary',t=>{
+ const dir=mkdtempSync(join(tmpdir(),'series-verify-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
  const run=()=>spawnSync(process.execPath,[fileURLToPath(new URL('../../environment/sim/verify.mjs',import.meta.url)),dir,join(dir,'reward.json')]);
  for(const [name,data] of Object.entries(copy()))writeFileSync(join(dir,name+'.json'),JSON.stringify(data));
  assert.equal(run().status,0);
@@ -55,17 +55,17 @@ test('the verifier binds configured and native maps while retaining case-insensi
   assert.equal(grade(e).reward.completed,1,requested);
  }
  for(const mutate of [
-  e=>{e.setup.engine.map='Harbor Ring';e.setup.engine.map_file=null;},
+  e=>{e.setup.engine.map='Ring Arena';e.setup.engine.map_file=null;},
   e=>delete e.setup.engine.map,
-  e=>{e.setup.settings.map='Harbor Ring';},
-  e=>{e.expected={seats:e.setup.seats,settings:{...e.setup.settings,map:'Harbor Ring'}};},
+  e=>{e.setup.settings.map='Ring Arena';},
+  e=>{e.expected={seats:e.setup.seats,settings:{...e.setup.settings,map:'Ring Arena'}};},
  ]){const e=copy();mutate(e);assert.throws(()=>grade(e),/map/,mutate.toString());}
  const dir=mkdtempSync(join(tmpdir(),'series-map-contract-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
  const e=copy();e.setup.settings.map='Glacier';
  for(const [name,data] of Object.entries(e))writeFileSync(join(dir,name+'.json'),JSON.stringify(data));
  writeFileSync(join(dir,'reward.json'),'{}');writeFileSync(join(dir,'series.json'),'{}');
  const result=spawnSync(process.execPath,[fileURLToPath(new URL('../../environment/sim/verify.mjs',import.meta.url)),dir,join(dir,'reward.json')],{
-  env:{...process.env,HARBOR_SEATS:JSON.stringify(e.setup.seats),HARBOR_SIM_SETTINGS:JSON.stringify({...e.setup.settings,map:'Harbor Ring'})},encoding:'utf8'});
+  env:{...process.env,MINDUSTRY_SEATS:JSON.stringify(e.setup.seats),MINDUSTRY_SIM_SETTINGS:JSON.stringify({...e.setup.settings,map:'Ring Arena'})},encoding:'utf8'});
  assert.notEqual(result.status,0);assert.match(result.stderr,/map differs from task contract/);
  for(const name of ['reward.json','series.json'])assert.equal(existsSync(join(dir,name)),false);
 });

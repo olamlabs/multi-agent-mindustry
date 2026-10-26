@@ -5,18 +5,6 @@ version = "0.5.0"
 
 artifacts = [
   { source = "/logs/sim", destination = "logs/sim" },
-  { source = "/recordings/seat-1", service = "seat-1-game" },
-  { source = "/tmp/mindustry-seat/seat-1/status.json", service = "seat-1-game" },
-  { source = "/tmp/mindustry-seat/seat-1/ffmpeg.log", service = "seat-1-game" },
-  { source = "/tmp/mindustry-seat/seat-1/recording-validation.jsonl", service = "seat-1-game" },
-  { source = "/tmp/mindustry-seat/seat-1/failure.txt", service = "seat-1-game" },
-  { source = "/tmp/mindustry-seat/seat-1/renderers", service = "seat-1-game" },
-  { source = "/recordings/seat-2", service = "seat-2-game" },
-  { source = "/tmp/mindustry-seat/seat-2/status.json", service = "seat-2-game" },
-  { source = "/tmp/mindustry-seat/seat-2/ffmpeg.log", service = "seat-2-game" },
-  { source = "/tmp/mindustry-seat/seat-2/recording-validation.jsonl", service = "seat-2-game" },
-  { source = "/tmp/mindustry-seat/seat-2/failure.txt", service = "seat-2-game" },
-  { source = "/tmp/mindustry-seat/seat-2/renderers", service = "seat-2-game" },
 ]
 
 [task]

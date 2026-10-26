@@ -41,20 +41,24 @@ def validate_config(config):
 def validate_runtime(source, settings, seats=(1, 20)):
     if not (source / 'environment/sim/survival-grade.mjs').is_file():
         raise ValueError('Canonical deterministic survival grader is missing')
-    if not (source / 'environment/plugin/src/harbor/ProgressiveWaves.java').is_file():
+    if not (source / 'environment/plugin/src/agentbridge/ProgressiveWaves.java').is_file():
         raise ValueError('Progressive native wave source is missing; no map-wave fallback is allowed')
     program = '''import {readFileSync} from 'node:fs';
 const {validateSettings, resolveTeams, resolveCameras} = await import(process.argv[1]);
 const input = JSON.parse(readFileSync(0, 'utf8'));
 const roster = Array.from({length:Number(process.argv[2])}, (_,i)=>`seat-${i+1}`);
 const out = resolveCameras(resolveTeams(validateSettings(input), roster), roster);
-if (out.time_limit_sec !== null || out.game_mode !== 'survival' || out.agent_ready_required !== true || !out.endless_survival) throw new Error('Unsupported endless survival contract');'''
+if (out.time_limit_sec !== null || out.game_mode !== 'survival' || out.agent_ready_required !== true || !out.endless_survival) throw new Error('Unsupported endless survival contract');
+console.log(JSON.stringify(out.video.seats));'''
+    cameras = None
     for size in sorted(set(seats)):
         result = subprocess.run(['node', '--input-type=module', '-e', program,
                                  (source / 'environment/sim/settings.mjs').resolve().as_uri(), str(size)],
                                 input=json.dumps(settings), text=True, capture_output=True)
         if result.returncode:
             raise ValueError(f'Canonical runtime rejected the survival contract for {size} seats: ' + result.stderr.strip())
+        cameras = json.loads(result.stdout)
+    return cameras
 
 def seat_names(count):
     return [f'seat-{i}' for i in range(1, count + 1)]
@@ -63,10 +67,10 @@ def team_text(seats):
     n = len(seats)
     return 'one seat, seat-1, a team of one' if n == 1 else f'{n} seats, seat-1 to seat-{n}, one team of all of them'
 
-def render_seats_task(path, version, seats, briefing, simulation):
+def render_seats_task(path, version, seats, cameras, briefing, simulation):
     """task.toml in Harbor Multiagent's form: one [agents.<seat>] table per seat, every one graded (each seat's instruction is
     instructions/<seat>.md), the play clock, the verifier in main, the simulation's size and the game's
-    files as artifacts: the simulation's from main, and each seat's native client's from its own game service."""
+    files as artifacts: the simulation's from main, and each camera seat's native client's from its own game service."""
     tags = ['mindustry', 'benchmark', 'multi-agent', 'survival', 'endless'] + (['wave-schedule'] if briefing else [])
     description = (f'Endless Mindustry survival on Fork: {team_text(seats)} defend one core for as long as they can'
                    + (', told the wave schedule' if briefing else '') + '. The reward is native minutes survived.')
@@ -82,7 +86,7 @@ def render_seats_task(path, version, seats, briefing, simulation):
              '[environment]', 'build_timeout_sec = 3600', f'cpus = {simulation["cpus"]}', f'memory_mb = {simulation["memory_mb"]}']
 
     artifacts = ['artifacts = [', '  { source = "/logs/sim", destination = "logs/sim" },']
-    for seat in seats:
+    for seat in cameras:
         for source in [f'/recordings/{seat}', *[f'/tmp/mindustry-seat/{seat}/{name}' for name in GAME_FILES]]:
             artifacts.append(f'  {{ source = "{source}", service = "{seat}-game" }},')
     artifacts += [']', '']
@@ -100,13 +104,17 @@ def configure(root=HERE, config=None):
 
     config = {**json.loads((root/'config.json').read_text()), **(config or {})}
     settings = validate_config(config)
-    world={**settings,'wave_schedule_briefing':config['wave_schedule_briefing']}
-    validate_runtime(root,world,(config['seats'],config['seats']))
     seats=seat_names(config['seats'])
+    world={**settings,'wave_schedule_briefing':config['wave_schedule_briefing']}
+    cameras=validate_runtime(root,world,(config['seats'],config['seats']))
+    if not settings.get('video',{}).get('record',True):
+        settings={**settings,'video':{**settings.get('video',{}),'seats':[]}}
+        world={**settings,'wave_schedule_briefing':config['wave_schedule_briefing']}
+        cameras=[]
     build=lambda target:{'context':'..','dockerfile':'environment/Dockerfile','target':target}
     services={'main':{'build':build('simulation'),'platform':'linux/amd64','networks':['control'],
         'command':['/bin/sh','-c','PATH=/usr/local/bin:/usr/bin:/bin exec node /app/task-runtime/seats.mjs --seat-clients'],
-        'environment':{'HARBOR_SEATS':json.dumps(seats),'HARBOR_SIM_SETTINGS':json.dumps(world)},
+        'environment':{'MINDUSTRY_SEATS':json.dumps(seats),'MINDUSTRY_SIM_SETTINGS':json.dumps(world)},
         'volumes':['camera-control:/run/mindustry-control']+[f'{seat}-token:/run/seat-tokens/{seat}' for seat in seats],
         'healthcheck':{'test':['CMD','/bin/sh','-c',"PATH=/usr/local/bin:/usr/bin:/bin node -e \"fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))\""],
                       'interval':'5s','timeout':'10s','retries':3,'start_period':'1h'}},
@@ -114,15 +122,16 @@ def configure(root=HERE, config=None):
     for seat in seats:
         services[seat]={'build':{'context':'..','dockerfile':'environment/seat-box/Dockerfile'},'networks':['agents'],'init':True,'cpus':2,'mem_limit':'2048m',
             'depends_on':{'main':{'condition':'service_healthy'}},
-            'environment':{'HARBOR_SEAT':seat,'HARBOR_SIM_URL':'http://api:8080'},'volumes':[f'{seat}-token:/run/mindustry:ro']}
+            'environment':{'MINDUSTRY_SEAT':seat,'MINDUSTRY_SIM_URL':'http://api:8080'},'volumes':[f'{seat}-token:/run/mindustry:ro']}
+        if seat not in cameras: continue
         services[seat+'-game']={'build':build('runtime'),'platform':'linux/amd64','networks':['control'],'init':True,
             'cpus':2,'mem_limit':'2048m','stop_grace_period':'90s','command':['node','/opt/mindustry/environment/seat-client/client.mjs'],
             'depends_on':{'main':{'condition':'service_healthy'}},'volumes':['camera-control:/run/mindustry-control:ro'],
-            'environment':{'HARBOR_SEAT':seat,'HARBOR_SIM_URLS':json.dumps({'9000':'http://main:9000','9001':'http://main:9001'}),
-                'HARBOR_SIM_HEADERS':'{}','MINDUSTRY_RECORDINGS_DIR':f'/recordings/{seat}','MINDUSTRY_SEAT_RUN_DIR':f'/tmp/mindustry-seat/{seat}'}}
+            'environment':{'MINDUSTRY_SEAT':seat,'MINDUSTRY_SIM_URLS':json.dumps({'9000':'http://main:9000','9001':'http://main:9001'}),
+                'MINDUSTRY_SIM_HEADERS':'{}','MINDUSTRY_RECORDINGS_DIR':f'/recordings/{seat}','MINDUSTRY_SEAT_RUN_DIR':f'/tmp/mindustry-seat/{seat}'}}
     compose={'services':services,'networks':{'agents':{},'control':{}},
              'volumes':{'camera-control':{},**{seat+'-token':{} for seat in seats}}}
-    task=render_seats_task(TASK_NAME,config['version'],seats,config['wave_schedule_briefing'],{'cpus':8,'memory_mb':8192}).decode()
+    task=render_seats_task(TASK_NAME,config['version'],seats,cameras,config['wave_schedule_briefing'],{'cpus':8,'memory_mb':8192}).decode()
 
     task=task.replace('# main:', '[[verifier.collect]]\nservice = "main"\ncommand = "PATH=/usr/local/bin:/usr/bin:/bin node /app/task-runtime/collect.mjs"\ntimeout_sec = 63000\n\n# main:')
     contract={'schema_version':'1.0.0', 'seat_range':[len(seats),len(seats)], 'settings':settings,

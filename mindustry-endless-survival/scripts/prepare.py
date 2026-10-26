@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Materialize ignored seat instructions before Harbor loads this task."""
+"""Write the per-seat instructions Harbor Multiagent loads for this task."""
 import argparse
 import json
 from pathlib import Path

@@ -28,8 +28,8 @@
         "start_period": "1h"
       },
       "environment": {
-        "HARBOR_SEATS": "[\"seat-1\", \"seat-2\", \"seat-3\", \"seat-4\"]",
-        "HARBOR_SIM_SETTINGS": "{\"game_mode\": \"pvp\", \"map\": \"Harbor Ring\", \"time_limit_sec\": 600, \"seed\": 1, \"games\": 3, \"chat_after_sec\": 300, \"all_chat\": false, \"lobby_sec\": 1800, \"video\": {\"record\": true, \"fps\": 5, \"width\": 960, \"height\": 540, \"seats\": \"all\"}, \"replay\": {\"record\": true, \"segment_sec\": 600, \"keyframe_sec\": 60}}"
+        "MINDUSTRY_SEATS": "[\"seat-1\", \"seat-2\", \"seat-3\", \"seat-4\"]",
+        "MINDUSTRY_SIM_SETTINGS": "{\"game_mode\": \"pvp\", \"map\": \"Ring Arena\", \"time_limit_sec\": 600, \"seed\": 1, \"games\": 3, \"chat_after_sec\": 300, \"all_chat\": false, \"lobby_sec\": 1800, \"video\": {\"record\": false, \"fps\": 5, \"width\": 960, \"height\": 540, \"seats\": []}, \"replay\": {\"record\": true, \"segment_sec\": 600, \"keyframe_sec\": 60}}"
       },
       "volumes": [
         "camera-control:/run/mindustry-control",
@@ -65,46 +65,12 @@
         }
       },
       "environment": {
-        "HARBOR_SEAT": "seat-1",
-        "HARBOR_SIM_URL": "http://api:8080"
+        "MINDUSTRY_SEAT": "seat-1",
+        "MINDUSTRY_SIM_URL": "http://api:8080"
       },
       "volumes": [
         "seat-1-token:/run/mindustry:ro"
       ]
-    },
-    "seat-1-game": {
-      "build": {
-        "context": "..",
-        "dockerfile": "environment/Dockerfile",
-        "target": "runtime"
-      },
-      "networks": [
-        "control"
-      ],
-      "platform": "linux/amd64",
-      "command": [
-        "node",
-        "/opt/mindustry/environment/seat-client/client.mjs"
-      ],
-      "volumes": [
-        "camera-control:/run/mindustry-control:ro"
-      ],
-      "init": true,
-      "stop_grace_period": "90s",
-      "cpus": 2,
-      "mem_limit": "2048m",
-      "depends_on": {
-        "main": {
-          "condition": "service_healthy"
-        }
-      },
-      "environment": {
-        "HARBOR_SEAT": "seat-1",
-        "HARBOR_SIM_URLS": "{\"9000\": \"http://main:9000\", \"9001\": \"http://main:9001\"}",
-        "HARBOR_SIM_HEADERS": "{}",
-        "MINDUSTRY_RECORDINGS_DIR": "/recordings/seat-1",
-        "MINDUSTRY_SEAT_RUN_DIR": "/tmp/mindustry-seat/seat-1"
-      }
     },
     "seat-2": {
       "build": "./seat-box",
@@ -120,46 +86,12 @@
         }
       },
       "environment": {
-        "HARBOR_SEAT": "seat-2",
-        "HARBOR_SIM_URL": "http://api:8080"
+        "MINDUSTRY_SEAT": "seat-2",
+        "MINDUSTRY_SIM_URL": "http://api:8080"
       },
       "volumes": [
         "seat-2-token:/run/mindustry:ro"
       ]
-    },
-    "seat-2-game": {
-      "build": {
-        "context": "..",
-        "dockerfile": "environment/Dockerfile",
-        "target": "runtime"
-      },
-      "networks": [
-        "control"
-      ],
-      "platform": "linux/amd64",
-      "command": [
-        "node",
-        "/opt/mindustry/environment/seat-client/client.mjs"
-      ],
-      "volumes": [
-        "camera-control:/run/mindustry-control:ro"
-      ],
-      "init": true,
-      "stop_grace_period": "90s",
-      "cpus": 2,
-      "mem_limit": "2048m",
-      "depends_on": {
-        "main": {
-          "condition": "service_healthy"
-        }
-      },
-      "environment": {
-        "HARBOR_SEAT": "seat-2",
-        "HARBOR_SIM_URLS": "{\"9000\": \"http://main:9000\", \"9001\": \"http://main:9001\"}",
-        "HARBOR_SIM_HEADERS": "{}",
-        "MINDUSTRY_RECORDINGS_DIR": "/recordings/seat-2",
-        "MINDUSTRY_SEAT_RUN_DIR": "/tmp/mindustry-seat/seat-2"
-      }
     },
     "seat-3": {
       "build": "./seat-box",
@@ -175,46 +107,12 @@
         }
       },
       "environment": {
-        "HARBOR_SEAT": "seat-3",
-        "HARBOR_SIM_URL": "http://api:8080"
+        "MINDUSTRY_SEAT": "seat-3",
+        "MINDUSTRY_SIM_URL": "http://api:8080"
       },
       "volumes": [
         "seat-3-token:/run/mindustry:ro"
       ]
-    },
-    "seat-3-game": {
-      "build": {
-        "context": "..",
-        "dockerfile": "environment/Dockerfile",
-        "target": "runtime"
-      },
-      "networks": [
-        "control"
-      ],
-      "platform": "linux/amd64",
-      "command": [
-        "node",
-        "/opt/mindustry/environment/seat-client/client.mjs"
-      ],
-      "volumes": [
-        "camera-control:/run/mindustry-control:ro"
-      ],
-      "init": true,
-      "stop_grace_period": "90s",
-      "cpus": 2,
-      "mem_limit": "2048m",
-      "depends_on": {
-        "main": {
-          "condition": "service_healthy"
-        }
-      },
-      "environment": {
-        "HARBOR_SEAT": "seat-3",
-        "HARBOR_SIM_URLS": "{\"9000\": \"http://main:9000\", \"9001\": \"http://main:9001\"}",
-        "HARBOR_SIM_HEADERS": "{}",
-        "MINDUSTRY_RECORDINGS_DIR": "/recordings/seat-3",
-        "MINDUSTRY_SEAT_RUN_DIR": "/tmp/mindustry-seat/seat-3"
-      }
     },
     "seat-4": {
       "build": "./seat-box",
@@ -230,46 +128,12 @@
         }
       },
       "environment": {
-        "HARBOR_SEAT": "seat-4",
-        "HARBOR_SIM_URL": "http://api:8080"
+        "MINDUSTRY_SEAT": "seat-4",
+        "MINDUSTRY_SIM_URL": "http://api:8080"
       },
       "volumes": [
         "seat-4-token:/run/mindustry:ro"
       ]
-    },
-    "seat-4-game": {
-      "build": {
-        "context": "..",
-        "dockerfile": "environment/Dockerfile",
-        "target": "runtime"
-      },
-      "networks": [
-        "control"
-      ],
-      "platform": "linux/amd64",
-      "command": [
-        "node",
-        "/opt/mindustry/environment/seat-client/client.mjs"
-      ],
-      "volumes": [
-        "camera-control:/run/mindustry-control:ro"
-      ],
-      "init": true,
-      "stop_grace_period": "90s",
-      "cpus": 2,
-      "mem_limit": "2048m",
-      "depends_on": {
-        "main": {
-          "condition": "service_healthy"
-        }
-      },
-      "environment": {
-        "HARBOR_SEAT": "seat-4",
-        "HARBOR_SIM_URLS": "{\"9000\": \"http://main:9000\", \"9001\": \"http://main:9001\"}",
-        "HARBOR_SIM_HEADERS": "{}",
-        "MINDUSTRY_RECORDINGS_DIR": "/recordings/seat-4",
-        "MINDUSTRY_SEAT_RUN_DIR": "/tmp/mindustry-seat/seat-4"
-      }
     }
   },
   "networks": {

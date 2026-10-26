@@ -9,7 +9,7 @@ import {header,options,refusal,segments} from '../../environment/render-recordin
 
 const task=fileURLToPath(new URL('../..',import.meta.url));
 const work=mkdtempSync(join(tmpdir(),'replay-format-'));
-execFileSync('javac',['--release','17','-d',join(work,'classes'),join(task,'environment/plugin/src/harbor/ReplayFormat.java'),join(task,'solution/tests/fixtures/ReplayFormatCheck.java')]);
+execFileSync('javac',['--release','17','-d',join(work,'classes'),join(task,'environment/plugin/src/agentbridge/ReplayFormat.java'),join(task,'solution/tests/fixtures/ReplayFormatCheck.java')]);
 const run=(...args)=>execFileSync('java',['-cp',join(work,'classes'),'ReplayFormatCheck',...args],{encoding:'utf8',maxBuffer:1<<26}).trim().split('\n').map(line=>JSON.parse(line));
 const read=file=>{const lines=run('read',file);return {header:lines[0].header,records:lines.slice(1,-1),cutShort:lines.at(-1).cut_short};};
 
@@ -56,7 +56,7 @@ test('a segment still being written, or cut anywhere, reads up to its last compl
 
 test('the render script reads segment headers and refuses a recording this image cannot play, in plain words',()=>{
   const dir=mkdtempSync(join(tmpdir(),'replay-headers-'));
-  const made={format:'mindustry-replay/1',mindustry:{build:160,revision:7,type:'official',server_jar_sha256:'a'.repeat(64)},mods:[{name:'harbor-bridge',version:'0.1.0',hidden:true,sha256:'b'.repeat(64)}],started_unix_ms:1,segment:0};
+  const made={format:'mindustry-replay/1',mindustry:{build:160,revision:7,type:'official',server_jar_sha256:'a'.repeat(64)},mods:[{name:'agent-bridge',version:'0.1.0',hidden:true,sha256:'b'.repeat(64)}],started_unix_ms:1,segment:0};
   const segment=(name,value)=>{const json=Buffer.from(JSON.stringify(value));const head=Buffer.alloc(12);head.write('MREPLAY1',0,'ascii');head.writeUInt32BE(json.length,8);writeFileSync(join(dir,name),Buffer.concat([head,json,Buffer.from([0x1f,0x8b])]));};
   segment('segment-001.mreplay',{...made,segment:1});
   segment('segment-000.mreplay',made);

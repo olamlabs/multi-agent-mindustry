@@ -8,7 +8,7 @@ const seats = ['seat-1', 'seat-2', 'seat-3', 'seat-4'];
 const cwd = '/tmp/mindustry-viewer-reset-smoke';
 mkdirSync(evidence, { recursive: true });
 mkdirSync(`${cwd}/config/mods`, { recursive: true });
-execFileSync('sh', ['/task/environment/plugin/build.sh', '/opt/mindustry/server.jar', `${cwd}/config/mods/harbor-bridge.jar`]);
+execFileSync('sh', ['/task/environment/plugin/build.sh', '/opt/mindustry/server.jar', `${cwd}/config/mods/agent-bridge.jar`]);
 const log = openSync(`${evidence}/server.log`, 'a');
 const server = spawn('java', ['-Xmx512m', '-jar', '/opt/mindustry/server.jar'], { cwd, stdio: ['pipe', log, log], env: { ...process.env, MINDUSTRY_EVIDENCE_DIR: `${evidence}/engine` } });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -44,7 +44,7 @@ try {
       await sleep(500);
     }
   }
-  const setup = await call('/setup', { game_mode: 'pvp', map: 'Harbor Ring', team_count: 2, team_size: 2, time_limit_sec: 600, seed: 7, seats });
+  const setup = await call('/setup', { game_mode: 'pvp', map: 'Ring Arena', team_count: 2, team_size: 2, time_limit_sec: 600, seed: 7, seats });
   handle = await bootRenderers({ evidence, video: { record: true, width: 640, height: 360, fps: 2 }, seats, onProgress: console.log });
   await startVideo(handle, 600);
   const begun = Date.now();

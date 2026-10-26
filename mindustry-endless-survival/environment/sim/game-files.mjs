@@ -15,15 +15,15 @@ export function readEnvironment(env = process.env) {
       throw new Error(`${name} is not JSON`);
     }
   };
-  const seats = parse('HARBOR_SEATS');
-  if (!Array.isArray(seats) || seats.length === 0 || seats.some((seat) => typeof seat !== 'string' || !seat)) throw new Error('HARBOR_SEATS must be a JSON list of seat names');
-  if (new Set(seats).size !== seats.length) throw new Error('HARBOR_SEATS names a seat twice');
-  const tokens = parse('HARBOR_SEAT_TOKENS');
+  const seats = parse('MINDUSTRY_SEATS');
+  if (!Array.isArray(seats) || seats.length === 0 || seats.some((seat) => typeof seat !== 'string' || !seat)) throw new Error('MINDUSTRY_SEATS must be a JSON list of seat names');
+  if (new Set(seats).size !== seats.length) throw new Error('MINDUSTRY_SEATS names a seat twice');
+  const tokens = parse('MINDUSTRY_SEAT_TOKEN_MAP');
   if (tokens == null || typeof tokens !== 'object' || seats.some((seat) => typeof tokens[seat] !== 'string' || !tokens[seat])) {
-    throw new Error('HARBOR_SEAT_TOKENS must give every seat a token');
+    throw new Error('MINDUSTRY_SEAT_TOKEN_MAP must give every seat a token');
   }
-  const settings = parse('HARBOR_SIM_SETTINGS', {});
-  if (settings == null || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('HARBOR_SIM_SETTINGS must be a JSON object');
+  const settings = parse('MINDUSTRY_SIM_SETTINGS', {});
+  if (settings == null || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('MINDUSTRY_SIM_SETTINGS must be a JSON object');
   return {
     seats,
     tokens: Object.fromEntries(seats.map((seat) => [seat, tokens[seat]])),

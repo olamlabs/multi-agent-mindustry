@@ -40,7 +40,7 @@ test('Harbor Multiagent task declares the configured roster and settings', () =>
   for (const old of ['shared','seats','simulation']) assert.equal(Object.hasOwn(task,old),false);
   assert.deepEqual(Object.keys(task.agents),seats(config.seats));
   const settings=config.settings;
-  assert.deepEqual([settings.game_mode,settings.map,settings.time_limit_sec,settings.games],['pvp','Harbor Ring',600,3]);
+  assert.deepEqual([settings.game_mode,settings.map,settings.time_limit_sec,settings.games],['pvp','Ring Arena',600,3]);
   assert.equal(resolveTeams(validateSettings(settings),seats(config.seats)).team_size,config.seats/2);
 });
 
@@ -70,7 +70,7 @@ const setupOf = (n, settings = {}) => {
   const config={game_mode:'pvp',time_limit_sec:10,games:3,...settings};
   const names=config.team_count===3?['sharded','crux','green']:['sharded','crux'];
   const teams=teamsOf(n,names);
-  return {settings:config,seats:seats(n),engine:{configured:true,seed:config.seed??1,map:config.map??(names.length>2?'Harbor Ring':'Glacier'),game_mode:config.game_mode,time_limit_sec:config.time_limit_sec,seat_teams:teams,cores:names.map(team=>({team,health:4000,max_health:4000}))}};
+  return {settings:config,seats:seats(n),engine:{configured:true,seed:config.seed??1,map:config.map??(names.length>2?'Ring Arena':'Glacier'),game_mode:config.game_mode,time_limit_sec:config.time_limit_sec,seat_teams:teams,cores:names.map(team=>({team,health:4000,max_health:4000}))}};
 };
 const played = (teams, winners) => ({started:true,results:winners.map((winner,i)=>({game:i+1,reason:winner?'core_destroyed':'time_limit',elapsed_seconds:10,waves_completed:0,wave:1,survival_censored:!winner,winning_team:winner,seat_teams:teams,core_health_by_team:Object.fromEntries([...new Set(Object.values(teams))].map(team=>[team,{health:!winner||winner===team?4000:0,max_health:4000}]))}))});
 
@@ -165,13 +165,13 @@ test('reward.json maps N=1, mixed wins, tied leaders and unequal teams to their 
   }
 });
 
-test('release configuration records every seat as the roster changes',()=>{
+test('release configuration leaves live cameras off and films every seat once they are on',()=>{
   const config=JSON.parse(readFileSync(new URL('../../config.json',import.meta.url)));
-  assert.equal(config.settings.video.record,true);
+  assert.equal(config.settings.video.record,false);
   assert.equal(config.settings.video.seats,'all');
   for(const n of [4, 10, 20]){
     const roster=seats(n);
-    const settings=resolveCameras(resolveTeams(validateSettings(config.settings),roster),roster);
+    const settings=resolveCameras(resolveTeams(validateSettings({...config.settings,video:{...config.settings.video,record:true}}),roster),roster);
     assert.deepEqual(settings.video.seats,roster);
   }
 });

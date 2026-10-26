@@ -5,5 +5,3 @@ jobs/
 *.class
 .cache/
 *.jar
-
-/instructions/

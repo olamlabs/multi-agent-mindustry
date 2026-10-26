@@ -128,7 +128,7 @@ async function render(view, run, previous, release) {
   const dir = join(run.out, 'views', view.name);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(join(dir, 'data', 'mods'), { recursive: true });
-  copyFileSync(run.viewerJar, join(dir, 'data', 'mods', 'harbor-replay-viewer.jar'));
+  copyFileSync(run.viewerJar, join(dir, 'data', 'mods', 'agent-bridge-replay.jar'));
   const files = { ready: join(dir, 'ready.json'), go: join(dir, 'go'), done: join(dir, 'done.json') };
   const video = join(run.out, `${view.name}.mp4`);
   const result = { view: view.name, seat: view.seat, at: view.at ?? null, video, from_sec: run.from, to_sec: run.to, client_fps: run.clientFps, video_fps: run.videoFps, width: run.width, height: run.height };
@@ -141,9 +141,9 @@ async function render(view, run, previous, release) {
     await waitForDisplay(view, xvfb);
     const client = launch(dir, 'client', 'java', ['-XX:ActiveProcessorCount=2', '-Xms128m', '-Xmx1g', '-Dnodiscord=true', '-Djava.awt.headless=false', `-Dmindustry.data.dir=${join(dir, 'data')}`, '-jar', run.desktopJar, '-width', String(view.width), '-height', String(view.height), '-maximized', 'false'], {
       DISPLAY: view.display, SDL_VIDEODRIVER: 'x11', SDL_AUDIODRIVER: 'dummy', LIBGL_ALWAYS_SOFTWARE: '1', LP_NUM_THREADS: '2',
-      HARBOR_REPLAY_DIR: run.replay, HARBOR_REPLAY_FROM: String(run.from), HARBOR_REPLAY_TO: run.to === null ? '' : String(run.to),
-      HARBOR_VIEW_SEAT: view.seat, HARBOR_VIEW_AT: view.at ? view.at.join(',') : '', HARBOR_VIEW_FPS: String(run.clientFps),
-      HARBOR_REPLAY_READY: files.ready, HARBOR_REPLAY_GO: files.go, HARBOR_REPLAY_DONE: files.done,
+      MINDUSTRY_REPLAY_DIR: run.replay, MINDUSTRY_REPLAY_FROM: String(run.from), MINDUSTRY_REPLAY_TO: run.to === null ? '' : String(run.to),
+      MINDUSTRY_VIEW_SEAT: view.seat, MINDUSTRY_VIEW_AT: view.at ? view.at.join(',') : '', MINDUSTRY_VIEW_FPS: String(run.clientFps),
+      MINDUSTRY_REPLAY_READY: files.ready, MINDUSTRY_REPLAY_GO: files.go, MINDUSTRY_REPLAY_DONE: files.done,
     });
     procs.push(client);
     while (!existsSync(files.ready)) {
@@ -205,8 +205,8 @@ export async function main(argv = process.argv.slice(2)) {
   const build = join(run.out, 'viewer-build');
   rmSync(build, { recursive: true, force: true });
   mkdirSync(join(build, 'classes'), { recursive: true });
-  execFileSync('javac', ['--release', '17', '-cp', run.desktopJar, '-d', join(build, 'classes'), join(plugin, 'src', 'harbor', 'ReplayFormat.java'), ...readdirSync(join(here, 'viewer', 'src', 'harbor', 'replay')).map(name => join(here, 'viewer', 'src', 'harbor', 'replay', name))], { stdio: 'inherit' });
-  run.viewerJar = join(build, 'harbor-replay-viewer.jar');
+  execFileSync('javac', ['--release', '17', '-cp', run.desktopJar, '-d', join(build, 'classes'), join(plugin, 'src', 'agentbridge', 'ReplayFormat.java'), ...readdirSync(join(here, 'viewer', 'src', 'agentbridge', 'replay')).map(name => join(here, 'viewer', 'src', 'agentbridge', 'replay', name))], { stdio: 'inherit' });
+  run.viewerJar = join(build, 'agent-bridge-replay.jar');
   execFileSync('jar', ['cf', run.viewerJar, '-C', join(build, 'classes'), '.', '-C', join(here, 'viewer'), 'mod.json', '-C', join(here, '../..'), 'LICENSE', '-C', join(here, '../..'), 'NOTICE'], { stdio: 'inherit' });
   const used = new Set();
   const views = run.views.map(view => ({ ...view, width: run.width, height: run.height, display: `:${display(used)}` }));

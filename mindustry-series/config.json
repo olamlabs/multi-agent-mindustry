@@ -2,7 +2,7 @@
   "seats": 4,
   "settings": {
     "game_mode": "pvp",
-    "map": "Harbor Ring",
+    "map": "Ring Arena",
     "time_limit_sec": 600,
     "seed": 1,
     "games": 3,
@@ -10,7 +10,7 @@
     "all_chat": false,
     "lobby_sec": 1800,
     "video": {
-      "record": true,
+      "record": false,
       "fps": 5,
       "width": 960,
       "height": 540,

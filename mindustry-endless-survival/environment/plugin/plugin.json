@@ -1,8 +1,8 @@
 {
-  "name": "harbor-bridge",
-  "displayName": "Harbor native player bridge",
+  "name": "agent-bridge",
+  "displayName": "Agent player bridge",
   "author": "Olam Labs",
-  "main": "harbor.HarborBridge",
+  "main": "agentbridge.AgentBridge",
   "description": "Ordinary programmatic player controls and evidence for native multi-agent episodes.",
   "version": "0.1.0",
   "minGameVersion": "160",

@@ -15,7 +15,7 @@ export function grade({setup,result,expected=null}) {
   requireEvidence(object(native)&&native.configured===true,'missing configured native setup');
   requireEvidence(native.game_mode===settings.game_mode&&native.time_limit_sec===settings.time_limit_sec,'native mode or deadline differs from setup');
   requireEvidence(native.seed===settings.seed,'native seed differs from setup');
-  const map=settings.map??((settings.team_sizes?.length??settings.team_count)>2?'Harbor Ring':'Glacier');
+  const map=settings.map??((settings.team_sizes?.length??settings.team_count)>2?'Ring Arena':'Glacier');
   requireEvidence(typeof native.map==='string'&&native.map.length>0&&[native.map,native.map_file].some(name=>typeof name==='string'&&name.toLowerCase()===map.toLowerCase()),'native map differs from setup');
   if(expected){
     requireEvidence(same(Object.fromEntries(expected.seats.map(s=>[s,true])),Object.fromEntries(seats.map(s=>[s,true]))),'roster differs from task contract');

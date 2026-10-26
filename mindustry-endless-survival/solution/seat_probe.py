@@ -3,7 +3,7 @@ import hashlib
 import time
 from pathlib import Path
 
-seat = os.environ['HARBOR_SEAT']
+seat = os.environ['MINDUSTRY_SEAT']
 world = os.environ['INTEGRATION_WORLD_ID']
 marker = Path('/tmp/mindustry-integration-world')
 assert not marker.exists(), 'Seat filesystem leaked from another world'

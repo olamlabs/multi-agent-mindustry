@@ -35,7 +35,7 @@ class ProbeAgent(BaseAgent):
         example = instruction.split('```python\n', 1)[1].split('```', 1)[0]
         client = example.split('players = call(', 1)[0]
         script = client + '\n' + '''import time
-assert "HARBOR_SEAT_TOKEN" not in os.environ
+assert "MINDUSTRY_SEAT_TOKEN" not in os.environ
 while True:
     view = call("/update")
     Path("/logs/agent").mkdir(parents=True, exist_ok=True)
@@ -66,7 +66,7 @@ async def main():
         trial_name=f'mindustry-series-{mode}-{os.getpid()}'
         trial = await Trial.create(TrialConfig(
             task={'path':task}, trials_dir=out/mode/'trials', trial_name=trial_name,
-            environment={'override_cpus':float(os.environ.get('HARBOR_TEST_CPUS','8'))},
+            environment={'override_cpus':float(os.environ.get('MINDUSTRY_TEST_CPUS','8'))},
             participants=[{'seat':f'seat-{i}','import_path':'harbor_smoke:ProbeAgent',
                            'kwargs':{'early':mode=='early'}} for i in [1,2]],
         ))

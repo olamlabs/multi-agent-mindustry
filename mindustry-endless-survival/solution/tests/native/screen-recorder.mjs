@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const work = mkdtempSync(join(tmpdir(), 'screen-grid-'));
-process.env.OLAM_RUN_DIR = work;
+process.env.MINDUSTRY_RECORDER_DIR = work;
 const { screenGrid, gridShape } = await import('../../../environment/dependencies/screen-recorder.mjs');
 try {
   for (const count of [1, 4]) {

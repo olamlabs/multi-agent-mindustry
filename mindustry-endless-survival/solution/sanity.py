@@ -8,7 +8,7 @@ import urllib.request
 def call(path, body=None):
     token = Path('/run/mindustry/token').read_text().strip()
     request = urllib.request.Request(
-        os.environ['HARBOR_SIM_URL'].rstrip('/') + path,
+        os.environ['MINDUSTRY_SIM_URL'].rstrip('/') + path,
         data=None if body is None else json.dumps(body).encode(),
         headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'},
     )
@@ -19,7 +19,7 @@ def call(path, body=None):
     return value
 
 def main():
-    seat = os.environ['HARBOR_SEAT']
+    seat = os.environ['MINDUSTRY_SEAT']
     assert call('/')['you'] == seat
     call('/ready', {})
     while True:
