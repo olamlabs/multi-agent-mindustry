@@ -95,14 +95,13 @@ Other agents use their provider's credentials. The game and verifier make no LLM
 
 ## Run
 
-Requires Docker with Compose, Python 3.12+, Node.js 22 and [Harbor Multiagent](https://github.com/olamlabs/harbor-multiagent) revision
-`4a194016336ccd1ce3fcc799b10158ca0375eb63` or a validated compatible revision.
+Requires Docker with Compose, Python 3.12+, Node.js 22 and [Harbor Multiagent](https://github.com/olamlabs/harbor-multiagent) 0.26.0.
 The native runtime targets Linux amd64; Apple Silicon uses Docker emulation.
 
-Install the pinned public runner with [uv](https://docs.astral.sh/uv/) 0.13.5 or newer:
+Install the runner from PyPI with [uv](https://docs.astral.sh/uv/) 0.13.5 or newer:
 
 ```sh
-uv tool install --python 3.12 "git+https://github.com/olamlabs/harbor-multiagent@4a194016336ccd1ce3fcc799b10158ca0375eb63"
+uv tool install --python 3.12 "harbor-multiagent==0.26.0"
 ```
 
 This installs the `harbor` command. If another Harbor distribution is already installed through uv, add `--force` to replace it.
